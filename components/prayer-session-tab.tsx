@@ -19,6 +19,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const pauseRef = useRef({ paused: false })
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
+  const [voiceType, setVoiceType] = useState<"ai" | "screenReader">("screenReader")
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedPoints, setSelectedPoints] = useState<PrayerPoint[]>([])
@@ -131,16 +132,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       wakeLock.release()
       setWakeLock(null)
     }
-
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
   }
 
   const nextTopic = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
     setCurrentlyReadingIndex(null)
     if (currentTopicIndex < topicNames.length - 1) {
       setCurrentTopicIndex(currentTopicIndex + 1)
@@ -150,9 +144,6 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   }
 
   const previousTopic = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
     setCurrentlyReadingIndex(null)
     if (currentTopicIndex > 0) {
       setCurrentTopicIndex(currentTopicIndex - 1)
@@ -160,42 +151,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   }
 
   const togglePause = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      if (pauseRef.current.paused) {
-        window.speechSynthesis.resume()
-        pauseRef.current.paused = false
-        setIsPaused(false)
-      } else {
-        window.speechSynthesis.pause()
-        pauseRef.current.paused = true
-        setIsPaused(true)
-      }
-    }
+    pauseRef.current.paused = !pauseRef.current.paused
+    setIsPaused(pauseRef.current.paused)
   }
 
   const skipToNext = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
     nextTopic()
     setIsPaused(false)
+    pauseRef.current.paused = false
   }
 
   const toggleMute = () => {
     setIsMuted(!isMuted)
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      if (!isMuted) {
-        window.speechSynthesis.cancel()
-      }
-    }
   }
-
-  // Auto-advance to next topic after pause duration and read prayer points
-  useEffect(() => {
-    if (!isPlaying && typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-    }
-  }, [isPlaying])
 
   useEffect(() => {
     if (isPlaying && !isPaused && !isMuted && topicNames.length > 0) {
@@ -206,56 +174,125 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
         // Read all prayer points for the current topic
         const readPrayerPoints = async () => {
           // First, announce the topic
-          if (typeof window !== "undefined" && window.speechSynthesis) {
-            const topicAnnouncement = `Pray for ${currentTopic}`
-            const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-            topicUtterance.rate = 0.75
-            topicUtterance.pitch = 1.0
-            topicUtterance.volume = 0.9
-            
-            await new Promise<void>((resolve) => {
-              topicUtterance.onend = () => resolve()
-              topicUtterance.onerror = () => resolve()
+          const topicAnnouncement = `Pray for ${currentTopic}`
+          if (voiceType === "ai") {
+            try {
+              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}`)
+              if (response.ok) {
+                const blob = await response.blob()
+                const audio = new Audio(URL.createObjectURL(blob))
+                audio.play()
+                await new Promise<void>((resolve) => {
+                  audio.onended = () => resolve()
+                  audio.onerror = () => resolve()
+                })
+              } else {
+                throw new Error('API failed')
+              }
+            } catch (error) {
+              console.warn('Failed to generate topic announcement with ElevenLabs:', error)
+              // Fallback to browser speech synthesis
+              if (typeof window !== "undefined" && window.speechSynthesis) {
+                const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                window.speechSynthesis.speak(topicUtterance)
+                await new Promise<void>((resolve) => {
+                  topicUtterance.onend = () => resolve()
+                  topicUtterance.onerror = () => resolve()
+                })
+              }
+            }
+          } else {
+            // Use screen reader directly
+            if (typeof window !== "undefined" && window.speechSynthesis) {
+              const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
               window.speechSynthesis.speak(topicUtterance)
-            })
-            
-            // Pause after topic announcement
-            await new Promise(resolve => setTimeout(resolve, 2000))
+              await new Promise<void>((resolve) => {
+                topicUtterance.onend = () => resolve()
+                topicUtterance.onerror = () => resolve()
+              })
+            }
           }
+
+          // Pause after topic announcement
+          await new Promise(resolve => setTimeout(resolve, 2000))
           
           for (let i = 0; i < currentPrayerPoints.length; i++) {
             if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) break
             
             const point = currentPrayerPoints[i]
             const textToSpeak = `${point.text}`
-            
+
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
-            
-            if (typeof window !== "undefined" && window.speechSynthesis) {
-              const utterance = new SpeechSynthesisUtterance(textToSpeak)
-              utterance.rate = 0.75
-              utterance.pitch = 1.0
-              utterance.volume = 0.9
-              
-              // Add slight pauses for better rhythm
-              utterance.text = textToSpeak.replace(/\./g, '. ').replace(/,/g, ', ')
-              
-              await new Promise<void>((resolve) => {
-                utterance.onend = () => {
-                  setCurrentlyReadingIndex(null)
-                  resolve()
+
+            if (voiceType === "ai") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    audio.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
+                  throw new Error('API failed')
                 }
-                utterance.onerror = () => {
+              } catch (error) {
+                console.warn('Failed to fetch TTS for prayer point with ElevenLabs:', error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const utterance = new SpeechSynthesisUtterance(textToSpeak)
+                  utterance.rate = 0.75
+                  utterance.pitch = 1.0
+                  utterance.volume = 0.9
+                  window.speechSynthesis.speak(utterance)
+                  await new Promise<void>((resolve) => {
+                    utterance.onend = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    utterance.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
                   setCurrentlyReadingIndex(null)
-                  resolve()
                 }
+              }
+            } else {
+              // Use screen reader directly
+              if (typeof window !== "undefined" && window.speechSynthesis) {
+                const utterance = new SpeechSynthesisUtterance(textToSpeak)
+                utterance.rate = 0.75
+                utterance.pitch = 1.0
+                utterance.volume = 0.9
                 window.speechSynthesis.speak(utterance)
-              })
-              
-              // Pause after each prayer point (using the selected duration)
-              await new Promise(resolve => setTimeout(resolve, Number.parseInt(pauseDuration) * 1000))
+                await new Promise<void>((resolve) => {
+                  utterance.onend = () => {
+                    setCurrentlyReadingIndex(null)
+                    resolve()
+                  }
+                  utterance.onerror = () => {
+                    setCurrentlyReadingIndex(null)
+                    resolve()
+                  }
+                })
+              } else {
+                setCurrentlyReadingIndex(null)
+              }
             }
+
+            // Pause after each prayer point (using the selected duration)
+            await new Promise(resolve => setTimeout(resolve, Number.parseInt(pauseDuration) * 1000))
           }
           setCurrentlyReadingIndex(null)
         }
@@ -271,12 +308,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       }
       
       return () => {
-        if (typeof window !== "undefined" && window.speechSynthesis) {
-          window.speechSynthesis.cancel()
-        }
+        // Cleanup if needed
       }
     }
-  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, groupedPrayers, pauseDuration])
+  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, groupedPrayers, pauseDuration, voiceType])
 
   // Cleanup wake lock on unmount
   useEffect(() => {
@@ -358,6 +393,24 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">Time to pause and reflect after each prayer point is read</p>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="voice" className="text-base">
+                Voice Type
+              </Label>
+              <Select value={voiceType} onValueChange={(value: "ai" | "screenReader") => setVoiceType(value)}>
+                <SelectTrigger id="voice" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ai">AI Voice ($$$ use sparingly) </SelectItem>
+                  <SelectItem value="screenReader">Screen Reader</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Choose the voice for prayer readings. AI voice requires API configuration.
+              </p>
             </div>
 
             <Button onClick={startPraying} disabled={prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
