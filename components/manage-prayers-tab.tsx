@@ -160,7 +160,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                 placeholder="e.g., Family, Health, Work"
                 value={newTopicName}
                 onChange={(e) => setNewTopicName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addPrayerPointWithNewTopic()}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPrayerPointWithNewTopic()}
               />
             </div>
           )}

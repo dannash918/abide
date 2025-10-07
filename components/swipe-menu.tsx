@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Menu, LogIn, User, Settings, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
@@ -34,6 +34,7 @@ export function SwipeMenu({ isAuthenticated = false, userEmail }: SwipeMenuProps
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-80 p-0">
+        <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-6 border-b border-border">
