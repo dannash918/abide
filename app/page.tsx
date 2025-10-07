@@ -32,9 +32,9 @@ export default function PrayerApp() {
       />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="text-center mb-8">
-          <h1 className="text-5xl font-serif font-bold text-primary mb-3 text-balance">Prayer Companion</h1>
+          <h1 className="text-5xl font-serif font-bold text-primary mb-3 text-balance">Abide</h1>
           <p className="text-muted-foreground text-lg text-balance">
-            Organize your prayers and deepen your spiritual practice
+             Abide in Me, and I will abide in you.
           </p>
         </header>
 

@@ -1,4 +1,4 @@
-# Prayer Companion
+# Abide
 
 A beautiful prayer management app built with Next.js, TypeScript, and Supabase.
 
@@ -85,4 +85,3 @@ A beautiful prayer management app built with Next.js, TypeScript, and Supabase.
 ## License
 
 MIT License - see LICENSE file for details
-

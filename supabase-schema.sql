@@ -1,4 +1,4 @@
--- Prayer Companion Database Schema
+-- Abide Database Schema
 -- Run this in your Supabase SQL editor
 
 -- Enable Row Level Security
@@ -77,4 +77,3 @@ CREATE TRIGGER update_prayer_points_updated_at BEFORE UPDATE ON prayer_points
 -- Insert some sample data (optional - remove if you don't want sample data)
 -- Note: This will only work after a user is created, so you might want to skip this
 -- or run it manually after creating your first user account
-

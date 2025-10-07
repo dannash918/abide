@@ -58,7 +58,7 @@ export default function LoginPage() {
 
         <Card className="border-primary/20 bg-card/50 backdrop-blur">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-serif">Prayer Companion</CardTitle>
+            <CardTitle className="text-2xl font-serif">Abide</CardTitle>
             <CardDescription>
               {isSignUp ? "Create your account" : "Sign in to your account"}
             </CardDescription>
@@ -131,4 +131,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

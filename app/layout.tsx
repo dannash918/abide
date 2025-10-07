@@ -6,7 +6,7 @@ import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Prayer Companion',
+  title: 'Abide',
   description: 'Organize your prayers and deepen your spiritual practice',
   generator: 'v0.app',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',

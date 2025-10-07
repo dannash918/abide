@@ -81,7 +81,7 @@ export function SwipeMenu({ isAuthenticated = false, userEmail }: SwipeMenuProps
           {/* Footer */}
           <div className="p-6 border-t border-border">
             <p className="text-xs text-muted-foreground text-center">
-              Prayer Companion v1.0
+              Abide v1.0
             </p>
           </div>
         </div>
