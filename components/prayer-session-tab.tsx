@@ -67,14 +67,12 @@ export function PrayerSessionTab({ prayerData }: PrayerSessionTabProps) {
 
   const getAllPrayerPoints = (): PrayerPoint[] => {
     const allPoints: PrayerPoint[] = []
-    prayerData.categories.forEach((category) => {
-      category.topics.forEach((topic) => {
-        const pointsWithTopic = topic.prayerPoints.map((point) => ({
-          ...point,
-          topicName: topic.name,
-        }))
-        allPoints.push(...pointsWithTopic)
-      })
+    prayerData.topics.forEach((topic) => {
+      const pointsWithTopic = topic.prayerPoints.map((point) => ({
+        ...point,
+        topicName: topic.name,
+      }))
+      allPoints.push(...pointsWithTopic)
     })
     return allPoints
   }

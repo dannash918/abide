@@ -10,12 +10,6 @@ export interface Topic {
   prayerPoints: PrayerPoint[]
 }
 
-export interface Category {
-  id: string
-  name: string
-  topics: Topic[]
-}
-
 export interface PrayerData {
-  categories: Category[]
+  topics: Topic[]
 }
