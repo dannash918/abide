@@ -4,15 +4,17 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Play, Pause, SkipForward, Volume2, VolumeX, X } from "lucide-react"
+import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2 } from "lucide-react"
 import type { PrayerData, PrayerPoint } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface PrayerSessionTabProps {
-  prayerData: PrayerData
+  // Remove prayerData prop since we'll use the hook
 }
 
-export function PrayerSessionTab({ prayerData }: PrayerSessionTabProps) {
+export function PrayerSessionTab({}: PrayerSessionTabProps) {
+  const { prayerData, loading, error } = usePrayerData()
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
   const [isPlaying, setIsPlaying] = useState(false)
@@ -177,8 +179,24 @@ export function PrayerSessionTab({ prayerData }: PrayerSessionTabProps) {
   const allPoints = getAllPrayerPoints()
   const totalPoints = allPoints.length
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your prayers...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive text-sm">{error}</p>
+        </div>
+      )}
       {!isPlaying ? (
         <Card className="border-primary/20 bg-card/50 backdrop-blur">
           <CardHeader>

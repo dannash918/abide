@@ -6,85 +6,190 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2 } from "lucide-react"
-import type { PrayerData, Topic, PrayerPoint } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Plus, Trash2, Loader2 } from "lucide-react"
+import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
-  prayerData: PrayerData
-  setPrayerData: (data: PrayerData) => void
+  // Remove these props since we're using the hook now
 }
 
-export function ManagePrayersTab({ prayerData, setPrayerData }: ManagePrayersTabProps) {
-  const [newTopicName, setNewTopicName] = useState("")
+export function ManagePrayersTab({}: ManagePrayersTabProps) {
+  const {
+    prayerData,
+    loading,
+    error,
+    createTopic,
+    deleteTopic,
+    createPrayerPoint,
+    deletePrayerPoint,
+    createTopicWithPrayerPoint
+  } = usePrayerData()
+
   const [newPrayerPoint, setNewPrayerPoint] = useState("")
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+  const [newTopicName, setNewTopicName] = useState("")
+  const [isCreatingNewTopic, setIsCreatingNewTopic] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const addTopic = () => {
-    if (newTopicName.trim()) {
-      const newTopic: Topic = {
-        id: Date.now().toString(),
-        name: newTopicName,
-        prayerPoints: [],
-      }
-      setPrayerData({
-        topics: [...prayerData.topics, newTopic],
-      })
-      setNewTopicName("")
+
+  const handleDeleteTopic = async (topicId: string) => {
+    setIsSubmitting(true)
+    const success = await deleteTopic(topicId)
+    setIsSubmitting(false)
+    if (!success) {
+      // Handle error - you could show a toast notification here
+      console.error('Failed to delete topic')
     }
   }
 
-  const deleteTopic = (topicId: string) => {
-    setPrayerData({
-      topics: prayerData.topics.filter((t) => t.id !== topicId),
-    })
-  }
+  const handleAddPrayerPoint = async () => {
+    if (!newPrayerPoint.trim() || !selectedTopicId) return
 
-  const addPrayerPoint = (topicId: string) => {
-    if (newPrayerPoint.trim()) {
-      const newPoint: PrayerPoint = {
-        id: Date.now().toString(),
-        text: newPrayerPoint,
-      }
-      setPrayerData({
-        topics: prayerData.topics.map((topic) =>
-          topic.id === topicId ? { ...topic, prayerPoints: [...topic.prayerPoints, newPoint] } : topic,
-        ),
-      })
+    setIsSubmitting(true)
+    const success = await createPrayerPoint(newPrayerPoint, selectedTopicId)
+    setIsSubmitting(false)
+    
+    if (success) {
       setNewPrayerPoint("")
       setSelectedTopicId(null)
+      setIsCreatingNewTopic(false)
+      setNewTopicName("")
+    } else {
+      console.error('Failed to create prayer point')
     }
   }
 
-  const deletePrayerPoint = (topicId: string, pointId: string) => {
-    setPrayerData({
-      topics: prayerData.topics.map((topic) =>
-        topic.id === topicId
-          ? { ...topic, prayerPoints: topic.prayerPoints.filter((p) => p.id !== pointId) }
-          : topic,
-      ),
-    })
+  const handleAddPrayerPointWithNewTopic = async () => {
+    if (!newPrayerPoint.trim() || !newTopicName.trim()) return
+
+    setIsSubmitting(true)
+    const success = await createTopicWithPrayerPoint(newTopicName, newPrayerPoint)
+    setIsSubmitting(false)
+    
+    if (success) {
+      setNewPrayerPoint("")
+      setNewTopicName("")
+      setIsCreatingNewTopic(false)
+      setSelectedTopicId(null)
+    } else {
+      console.error('Failed to create topic with prayer point')
+    }
+  }
+
+  const handleDeletePrayerPoint = async (topicId: string, pointId: string) => {
+    setIsSubmitting(true)
+    const success = await deletePrayerPoint(topicId, pointId)
+    setIsSubmitting(false)
+    if (!success) {
+      console.error('Failed to delete prayer point')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your prayers...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Add Topic Section */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Add Prayer Point Section */}
       <Card className="border-primary/20 bg-card/50 backdrop-blur">
         <CardHeader>
-          <CardTitle className="text-2xl">Add New Topic</CardTitle>
-          <CardDescription>Create topics for your prayer items</CardDescription>
+          <CardTitle className="text-2xl">Add New Prayer Point</CardTitle>
+          <CardDescription>Add a prayer point and assign it to a topic</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="e.g., Family, Health, Work"
-              value={newTopicName}
-              onChange={(e) => setNewTopicName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTopic()}
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="prayer-point">Prayer Point</Label>
+            <Textarea
+              id="prayer-point"
+              placeholder="Enter your prayer point..."
+              value={newPrayerPoint}
+              onChange={(e) => setNewPrayerPoint(e.target.value)}
+              className="min-h-[80px]"
             />
-            <Button onClick={addTopic} disabled={!newTopicName.trim()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="topic-select">Topic</Label>
+            <Select
+              value={isCreatingNewTopic ? "new" : selectedTopicId || ""}
+              onValueChange={(value) => {
+                if (value === "new") {
+                  setIsCreatingNewTopic(true)
+                  setSelectedTopicId(null)
+                } else {
+                  setIsCreatingNewTopic(false)
+                  setSelectedTopicId(value)
+                }
+              }}
+            >
+              <SelectTrigger id="topic-select">
+                <SelectValue placeholder="Select or create a topic" />
+              </SelectTrigger>
+              <SelectContent>
+                {prayerData.topics.map((topic) => (
+                  <SelectItem key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">+ Create New Topic</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isCreatingNewTopic && (
+            <div className="space-y-2">
+              <Label htmlFor="new-topic">New Topic Name</Label>
+              <Input
+                id="new-topic"
+                placeholder="e.g., Family, Health, Work"
+                value={newTopicName}
+                onChange={(e) => setNewTopicName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addPrayerPointWithNewTopic()}
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button 
+              onClick={isCreatingNewTopic ? handleAddPrayerPointWithNewTopic : handleAddPrayerPoint} 
+              disabled={!newPrayerPoint.trim() || (!selectedTopicId && !isCreatingNewTopic) || (isCreatingNewTopic && !newTopicName.trim()) || isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              {isSubmitting ? "Adding..." : "Add Prayer Point"}
             </Button>
+            {(selectedTopicId || isCreatingNewTopic) && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSelectedTopicId(null)
+                  setIsCreatingNewTopic(false)
+                  setNewTopicName("")
+                }}
+              >
+                Cancel
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -93,7 +198,7 @@ export function ManagePrayersTab({ prayerData, setPrayerData }: ManagePrayersTab
       {prayerData.topics.length === 0 ? (
         <Card className="bg-muted/30">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground text-balance">No topics yet. Start by adding a topic above.</p>
+            <p className="text-muted-foreground text-balance">No prayer points yet. Start by adding a prayer point above.</p>
           </CardContent>
         </Card>
       ) : (
@@ -106,44 +211,19 @@ export function ManagePrayersTab({ prayerData, setPrayerData }: ManagePrayersTab
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteTopic(topic.id)}
+                    onClick={() => handleDeleteTopic(topic.id)}
+                    disabled={isSubmitting}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {selectedTopicId === topic.id ? (
-                  <div className="space-y-2 p-4 bg-secondary/50 rounded-lg">
-                    <Label>New Prayer Point</Label>
-                    <Textarea
-                      placeholder="Enter your prayer point..."
-                      value={newPrayerPoint}
-                      onChange={(e) => setNewPrayerPoint(e.target.value)}
-                      className="min-h-[80px]"
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => addPrayerPoint(topic.id)}
-                        disabled={!newPrayerPoint.trim()}
-                        size="sm"
-                      >
-                        Add
-                      </Button>
-                      <Button variant="outline" onClick={() => setSelectedTopicId(null)} size="sm">
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button variant="outline" onClick={() => setSelectedTopicId(topic.id)} className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Prayer Point
-                  </Button>
-                )}
-
                 {topic.prayerPoints.length > 0 && (
                   <div className="space-y-2">
                     {topic.prayerPoints.map((point, index) => (
@@ -156,10 +236,15 @@ export function ManagePrayersTab({ prayerData, setPrayerData }: ManagePrayersTab
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deletePrayerPoint(topic.id, point.id)}
+                          onClick={() => handleDeletePrayerPoint(topic.id, point.id)}
+                          disabled={isSubmitting}
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          {isSubmitting ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3" />
+                          )}
                         </Button>
                       </div>
                     ))}
