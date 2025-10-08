@@ -8,6 +8,7 @@ import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, Chevro
 import type { PrayerData, PrayerPoint } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 
@@ -37,6 +38,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
   const [topicNames, setTopicNames] = useState<string[]>([])
   const [currentlyReadingIndex, setCurrentlyReadingIndex] = useState<number | null>(null)
+  const [timerProgress, setTimerProgress] = useState(0)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const makeSpeakableText = (text: string): string => {
     // Clean up text for TTS: replace newlines with spaces, clean up quotes, etc.
@@ -220,6 +223,9 @@ Amen.`,
       audio.currentTime = 0
     })
 
+    // Stop timer when navigating
+    stopTimer()
+
     if (currentTopicIndex < topicNames.length - 1) {
       setCurrentTopicIndex(currentTopicIndex + 1)
     } else {
@@ -238,6 +244,9 @@ Amen.`,
       audio.pause()
       audio.currentTime = 0
     })
+
+    // Stop timer when navigating
+    stopTimer()
 
     if (currentTopicIndex > 0) {
       setCurrentTopicIndex(currentTopicIndex - 1)
@@ -263,6 +272,49 @@ Amen.`,
   const toggleMute = () => {
     setIsMuted(!isMuted)
   }
+
+  // Timer functions to control the circular progress ring
+  const startTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+
+    const pauseMs = Number.parseInt(pauseDuration) * 1000
+    const interval = 100 // Update every 100ms
+    const steps = pauseMs / interval
+    let currentStep = 0
+
+    setTimerProgress(0) // Reset to empty
+
+    const updateProgress = () => {
+      currentStep++
+      const progress = (currentStep / steps) * 100
+      setTimerProgress(Math.min(progress, 100))
+
+      if (currentStep < steps) {
+        timerRef.current = setTimeout(updateProgress, interval)
+      } else {
+        setTimerProgress(0) // Reset when timer completes
+      }
+    }
+
+    // Start the timer
+    timerRef.current = setTimeout(updateProgress, interval)
+  }
+
+  const stopTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      setTimerProgress(0)
+    }
+  }
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      stopTimer()
+    }
+  }, [])
 
   useEffect(() => {
     if (isPlaying && !isPaused && !isMuted && topicNames.length > 0) {
@@ -487,11 +539,15 @@ Amen.`,
               }
             }
 
-            // Pause after each prayer point (using the selected duration, but interruptible)
+            // Pause after each prayer point (using the selected duration, but interruptible) with timer
             await new Promise<void>((resolve) => {
+              // Start the timer when pause begins
+              startTimer()
+
               const checkInterval = setInterval(() => {
                 if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
                   clearInterval(checkInterval)
+                  stopTimer() // Stop timer if pause is interrupted
                   resolve()
                   return
                 }
@@ -499,6 +555,7 @@ Amen.`,
 
               setTimeout(() => {
                 clearInterval(checkInterval)
+                stopTimer() // Stop timer when pause completes naturally
                 resolve()
               }, Number.parseInt(pauseDuration) * 1000)
             })
@@ -746,56 +803,65 @@ Amen.`,
             )}
           </div>
 
-          <div className={`${isFullscreen ? "mt-16" : "mt-8"} flex items-center justify-center gap-4`}>
-            {/* Previous Topic Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={previousTopic}
-              disabled={currentTopicIndex === 0}
-              className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-            >
-              <ChevronLeft className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            </Button>
+          <div className={`${isFullscreen ? "mt-16" : "mt-8"} flex flex-col items-center gap-4`}>
+            <div className={`${isFullscreen ? "flex items-center justify-center gap-4" : "flex items-center justify-center gap-4"}`}>
+              {/* Previous Topic Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={previousTopic}
+                disabled={currentTopicIndex === 0}
+                className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
+              >
+                <ChevronLeft className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+              </Button>
 
-            {/* Mute Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleMute}
-              className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-            >
-              {isMuted ? (
-                <VolumeX className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-              ) : (
-                <Volume2 className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-              )}
-            </Button>
+              {/* Mute Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleMute}
+                className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
+              >
+                {isMuted ? (
+                  <VolumeX className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+                ) : (
+                  <Volume2 className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+                )}
+              </Button>
 
-            {/* Pause/Play Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={togglePause}
-              disabled={isMuted}
-              className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-            >
-              {isPaused ? (
-                <Play className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-              ) : (
-                <Pause className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-              )}
-            </Button>
+              {/* Pause/Play Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={togglePause}
+                disabled={isMuted}
+                className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
+              >
+                {isPaused ? (
+                  <Play className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+                ) : (
+                  <Pause className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+                )}
+              </Button>
 
-            {/* Next Topic Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={nextTopic}
-              className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-            >
-              <ChevronRight className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            </Button>
+              {/* Next Topic Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={nextTopic}
+                className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
+              >
+                <ChevronRight className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
+              </Button>
+            </div>
+
+            {/* Horizontal Progress Bar - Shows when the next prayer will be displayed */}
+            {timerProgress > 0 && (
+              <div className="w-full mt-4">
+                <Progress value={timerProgress} className="w-full" />
+              </div>
+            )}
           </div>
         </div>
       )}
