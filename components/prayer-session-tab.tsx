@@ -8,6 +8,7 @@ import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, Chevro
 import type { PrayerData, PrayerPoint } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePrayerData } from "@/hooks/use-prayer-data"
+import { praiseOptions } from "@/lib/praise-verses"
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
@@ -33,7 +34,15 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [topicNames, setTopicNames] = useState<string[]>([])
   const [currentlyReadingIndex, setCurrentlyReadingIndex] = useState<number | null>(null)
 
-
+  const makeSpeakableText = (text: string): string => {
+    // Clean up text for TTS: replace newlines with spaces, clean up quotes, etc.
+    return text
+      .replace(/\n\n/g, ' ')  // Double newlines to space
+      .replace(/\n/g, ' ')    // Single newlines to space
+      .replace(/"/g, '')      // Remove quotes
+      .replace(/—/g, ",")     // Replace emdash with comma
+      .trim()
+  }
 
   const getAllPrayerPoints = (): PrayerPoint[] => {
     const allPoints: PrayerPoint[] = []
@@ -51,6 +60,17 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     const allPoints = getAllPrayerPoints()
     if (allPoints.length === 0) return
 
+    // Pick random praise point
+    const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
+
+    // Add praise point first
+    const praisePoints: PrayerPoint[] = [{
+      id: 'praise-1',
+      text: randomPraise.text,
+      topicName: 'Praise',
+      verseReference: randomPraise.verse
+    }]
+
     // Group prayers by topic
     const grouped: { [topicName: string]: PrayerPoint[] } = {}
     allPoints.forEach(point => {
@@ -61,11 +81,14 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       grouped[topicName].push(point)
     })
 
+    // Add praise to grouped
+    grouped['Praise'] = praisePoints
+
     // Shuffle topics and limit by selected count
-    const topicNames = Object.keys(grouped)
+    const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
     const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
     const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
-    const selectedTopics = shuffledTopics.slice(0, count)
+    const selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
 
     // Create final grouped prayers
     const finalGrouped: { [topicName: string]: PrayerPoint[] } = {}
@@ -174,7 +197,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
         // Read all prayer points for the current topic
         const readPrayerPoints = async () => {
           // First, announce the topic
-          const topicAnnouncement = `Pray for ${currentTopic}`
+          const topicAnnouncement = currentTopic === 'Praise'
+            ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
+            : `Pray for ${currentTopic}`
           if (voiceType === "ai") {
             try {
               const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}`)
@@ -483,7 +508,14 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                         }`}>
                           {index + 1}.
                         </span>
-                        <p className="leading-relaxed">{point.text}</p>
+                        <p className="leading-relaxed">
+                          {point.text}
+                          {point.verseReference && (
+                            <span className={`${isFullscreen ? "text-sm" : "text-xs"} text-muted-foreground block mt-2`}>
+                              — {point.verseReference}
+                            </span>
+                          )}
+                        </p>
                         {currentlyReadingIndex === index && (
                           <div className="ml-auto">
                             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>

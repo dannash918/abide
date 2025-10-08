@@ -2,6 +2,7 @@ export interface PrayerPoint {
   id: string
   text: string
   topicName?: string
+  verseReference?: string
 }
 
 export interface Topic {
