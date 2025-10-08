@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
 import type { PrayerData, PrayerPoint } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 
@@ -21,6 +22,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"ai" | "screenReader">("screenReader")
+  const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedPoints, setSelectedPoints] = useState<PrayerPoint[]>([])
@@ -60,17 +62,6 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     const allPoints = getAllPrayerPoints()
     if (allPoints.length === 0) return
 
-    // Pick random praise point
-    const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
-
-    // Add praise point first
-    const praisePoints: PrayerPoint[] = [{
-      id: 'praise-1',
-      text: randomPraise.text,
-      topicName: 'Praise',
-      verseReference: randomPraise.verse
-    }]
-
     // Group prayers by topic
     const grouped: { [topicName: string]: PrayerPoint[] } = {}
     allPoints.forEach(point => {
@@ -81,14 +72,35 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       grouped[topicName].push(point)
     })
 
-    // Add praise to grouped
-    grouped['Praise'] = praisePoints
+    // Add praise if selected
+    let selectedTopics: string[]
+    if (includePraise) {
+      // Pick random praise point
+      const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
 
-    // Shuffle topics and limit by selected count
-    const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
-    const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-    const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
-    const selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
+      // Add praise point first
+      const praisePoints: PrayerPoint[] = [{
+        id: 'praise-1',
+        text: randomPraise.text,
+        topicName: 'Praise',
+        verseReference: randomPraise.verse
+      }]
+
+      // Add praise to grouped
+      grouped['Praise'] = praisePoints
+
+      // Shuffle topics and limit by selected count
+      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
+      const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
+      const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
+      selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
+    } else {
+      // Shuffle topics without praise
+      const topicNames = Object.keys(grouped)
+      const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
+      const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
+      selectedTopics = shuffledTopics.slice(0, count)
+    }
 
     // Create final grouped prayers
     const finalGrouped: { [topicName: string]: PrayerPoint[] } = {}
@@ -375,6 +387,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
             <CardDescription>Select how many topics you'd like to pray through</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="include-praise"
+                checked={includePraise}
+                onCheckedChange={(checked) => setIncludePraise(!!checked)}
+              />
+              <Label
+                htmlFor="include-praise"
+                className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Start with praise
+              </Label>
+            </div>
             <div className="space-y-3">
               <Label htmlFor="count" className="text-base">
                 Number of Topics
@@ -437,7 +462,6 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 Choose the voice for prayer readings. AI voice requires API configuration.
               </p>
             </div>
-
             <Button onClick={startPraying} disabled={prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
               <Play className="w-5 h-5" />
               Start Praying
@@ -489,7 +513,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
             {topicNames[currentTopicIndex] && (
               <div className="text-center mb-8">
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  Pray for {topicNames[currentTopicIndex]}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
