@@ -162,6 +162,17 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     setIsPaused(false)
     setIsFullscreen(false)
 
+    // Cancel any ongoing speech synthesis
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+
+    // Cancel any ongoing audio playback
+    document.querySelectorAll('audio').forEach(audio => {
+      audio.pause()
+      audio.currentTime = 0
+    })
+
     // Release wake lock
     if (wakeLock) {
       wakeLock.release()
@@ -188,6 +199,11 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const togglePause = () => {
     pauseRef.current.paused = !pauseRef.current.paused
     setIsPaused(pauseRef.current.paused)
+
+    // Cancel any ongoing speech synthesis when pausing
+    if (pauseRef.current.paused && typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
   }
 
   const skipToNext = () => {
@@ -251,13 +267,29 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           }
 
           // Pause after topic announcement
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          await new Promise<void>((resolve) => {
+            const checkInterval = setInterval(() => {
+              if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) {
+                clearInterval(checkInterval)
+                resolve()
+                return
+              }
+            }, 100)
+
+            setTimeout(() => {
+              clearInterval(checkInterval)
+              resolve()
+            }, 2000)
+          })
           
           for (let i = 0; i < currentPrayerPoints.length; i++) {
             if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) break
-            
+
             const point = currentPrayerPoints[i]
             const textToSpeak = `${point.text}`
+
+            // Double check cancellation right before TTS starts
+            if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) break
 
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
