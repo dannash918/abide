@@ -30,6 +30,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [includeLordsPrayer, setIncludeLordsPrayer] = useState(false)
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
@@ -101,6 +102,32 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
       selectedTopics = shuffledTopics.slice(0, count)
+    }
+
+    // Add Lord's Prayer at the end if selected
+    if (includeLordsPrayer) {
+      const lordsPrayerPoints: PrayerPoint[] = [{
+        id: 'lords-prayer-1',
+        text: `Our Father in heaven,
+hallowed be your name,
+your kingdom come,
+your will be done,
+on earth as in heaven.
+Give us today our daily bread.
+Forgive us our sins
+as we forgive those who sin against us.
+Lead us not into temptation
+but deliver us from evil.
+For the kingdom, the power,
+and the glory are yours
+now and for ever.
+Amen.`,
+        topicName: 'Lord\'s Prayer',
+        verseReference: `The Lord's Prayer`
+      }]
+
+      grouped['Lord\'s Prayer'] = lordsPrayerPoints
+      selectedTopics.push('Lord\'s Prayer')
     }
 
     // Create final grouped prayers
@@ -255,6 +282,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           // First, announce the topic
           const topicAnnouncement = currentTopic === 'Praise'
             ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
+            : currentTopic === 'Lord\'s Prayer'
+            ? `Let's finish with the Lord's Prayer`
             : `Pray for ${currentTopic}`
           if (voiceType === "ai") {
             try {
@@ -481,6 +510,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 Start with praise
               </Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="include-lords-prayer"
+                checked={includeLordsPrayer}
+                onCheckedChange={(checked) => setIncludeLordsPrayer(!!checked)}
+              />
+              <Label
+                htmlFor="include-lords-prayer"
+                className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                End with Lord's Prayer
+              </Label>
+            </div>
             <div className="space-y-3">
               <Label htmlFor="count" className="text-base">
                 Number of Topics
@@ -594,7 +636,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
             {topicNames[currentTopicIndex] && (
               <div className="text-center mb-8">
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
@@ -613,7 +655,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                         }`}>
                           {index + 1}.
                         </span>
-                        <p className="leading-relaxed">
+                        <p className={`leading-relaxed ${point.id === 'lords-prayer-1' ? 'whitespace-pre-line' : ''}`}>
                           {point.text}
                           {point.verseReference && (
                             <span className={`${isFullscreen ? "text-sm" : "text-xs"} text-muted-foreground block mt-2`}>
