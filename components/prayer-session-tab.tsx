@@ -22,7 +22,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const readingSessionRef = useRef(0)
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
-  const [voiceType, setVoiceType] = useState<"ai" | "screenReader">("screenReader")
+  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("screenReader")
   const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -285,9 +285,9 @@ Amen.`,
             : currentTopic === 'Lord\'s Prayer'
             ? `Let's finish with the Lord's Prayer`
             : `Pray for ${currentTopic}`
-          if (voiceType === "ai") {
+          if (voiceType === "elevenlabs") {
             try {
-              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}`)
+              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=elevenlabs`)
               if (response.ok) {
                 const blob = await response.blob()
                 const audio = new Audio(URL.createObjectURL(blob))
@@ -301,6 +301,32 @@ Amen.`,
               }
             } catch (error) {
               console.warn('Failed to generate topic announcement with ElevenLabs:', error)
+              // Fallback to browser speech synthesis
+              if (typeof window !== "undefined" && window.speechSynthesis) {
+                const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                window.speechSynthesis.speak(topicUtterance)
+                await new Promise<void>((resolve) => {
+                  topicUtterance.onend = () => resolve()
+                  topicUtterance.onerror = () => resolve()
+                })
+              }
+            }
+          } else if (voiceType === "polly") {
+            try {
+              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=polly`)
+              if (response.ok) {
+                const blob = await response.blob()
+                const audio = new Audio(URL.createObjectURL(blob))
+                audio.play()
+                await new Promise<void>((resolve) => {
+                  audio.onended = () => resolve()
+                  audio.onerror = () => resolve()
+                })
+              } else {
+                throw new Error('API failed')
+              }
+            } catch (error) {
+              console.warn('Failed to generate topic announcement with Polly:', error)
               // Fallback to browser speech synthesis
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
@@ -352,9 +378,9 @@ Amen.`,
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
 
-            if (voiceType === "ai") {
+            if (voiceType === "elevenlabs") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}`)
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=elevenlabs`)
                 if (response.ok) {
                   const blob = await response.blob()
                   const audio = new Audio(URL.createObjectURL(blob))
@@ -374,6 +400,49 @@ Amen.`,
                 }
               } catch (error) {
                 console.warn('Failed to fetch TTS for prayer point with ElevenLabs:', error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const utterance = new SpeechSynthesisUtterance(textToSpeak)
+                  utterance.rate = 0.75
+                  utterance.pitch = 1.0
+                  utterance.volume = 0.9
+                  window.speechSynthesis.speak(utterance)
+                  await new Promise<void>((resolve) => {
+                    utterance.onend = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    utterance.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
+                  setCurrentlyReadingIndex(null)
+                }
+              }
+            } else if (voiceType === "polly") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=polly`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    audio.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
+                  throw new Error('API failed')
+                }
+              } catch (error) {
+                console.warn('Failed to fetch TTS for prayer point with Polly:', error)
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak)
@@ -572,17 +641,18 @@ Amen.`,
               <Label htmlFor="voice" className="text-base">
                 Voice Type
               </Label>
-              <Select value={voiceType} onValueChange={(value: "ai" | "screenReader") => setVoiceType(value)}>
+              <Select value={voiceType} onValueChange={(value: "elevenlabs" | "polly" | "screenReader") => setVoiceType(value)}>
                 <SelectTrigger id="voice" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ai">AI Voice ($$$ use sparingly) </SelectItem>
+                  <SelectItem value="polly">Ruth (AWS)</SelectItem>
+                  <SelectItem value="elevenlabs">Rachel (ElevenLabs)</SelectItem>
                   <SelectItem value="screenReader">Screen Reader</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Choose the voice for prayer readings. AI voice requires API configuration.
+                Choose the voice for prayer readings. AI voices require API configuration.
               </p>
             </div>
             <Button onClick={startPraying} disabled={prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">

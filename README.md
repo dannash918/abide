@@ -6,6 +6,7 @@ A beautiful prayer management app built with Next.js, TypeScript, and Supabase.
 
 - **Prayer Management**: Organize your prayers into topics and add prayer points
 - **Prayer Sessions**: Guided prayer sessions with text-to-speech
+- **Voice Options**: Choose from ElevenLabs, AWS Polly, or screen reader voices
 - **User Authentication**: Secure login/signup with Supabase
 - **Swipe Menu**: Easy navigation from the top-left corner
 - **Responsive Design**: Works on desktop and mobile devices
@@ -31,6 +32,20 @@ A beautiful prayer management app built with Next.js, TypeScript, and Supabase.
      ```env
      NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
      NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+     ```
+
+3. **Optional: Configure Text-to-Speech APIs**
+   - **ElevenLabs**: Add your API key to `.env.local`:
+     ```env
+     ELEVENLABS_API_KEY=your_elevenlabs_api_key
+     ELEVENLABS_VOICE_ID=your_preferred_voice_id  # optional
+     ```
+   - **AWS Polly**: Add AWS credentials to `.env.local` (optional):
+     ```env
+     AWS_ACCESS_KEY_ID=your_access_key_id
+     AWS_SECRET_ACCESS_KEY=your_secret_access_key
+     AWS_REGION=us-east-1
+     AWS_POLLY_VOICE_ID=Joanna  # optional
      ```
 
 4. **Run the development server**
