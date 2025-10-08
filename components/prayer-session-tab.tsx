@@ -182,6 +182,16 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
   const nextTopic = () => {
     setCurrentlyReadingIndex(null)
+
+    // Stop any ongoing TTS
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    document.querySelectorAll('audio').forEach(audio => {
+      audio.pause()
+      audio.currentTime = 0
+    })
+
     if (currentTopicIndex < topicNames.length - 1) {
       setCurrentTopicIndex(currentTopicIndex + 1)
     } else {
@@ -191,6 +201,16 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
   const previousTopic = () => {
     setCurrentlyReadingIndex(null)
+
+    // Stop any ongoing TTS
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    document.querySelectorAll('audio').forEach(audio => {
+      audio.pause()
+      audio.currentTime = 0
+    })
+
     if (currentTopicIndex > 0) {
       setCurrentTopicIndex(currentTopicIndex - 1)
     }
