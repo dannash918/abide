@@ -280,32 +280,35 @@ Amen.`,
     }
 
     const pauseMs = Number.parseInt(pauseDuration) * 1000
-    const interval = 100 // Update every 100ms
-    const steps = pauseMs / interval
-    let currentStep = 0
+    const startTime = Date.now()
 
     setTimerProgress(0) // Reset to empty
 
     const updateProgress = () => {
-      currentStep++
-      const progress = (currentStep / steps) * 100
-      setTimerProgress(Math.min(progress, 100))
+      const elapsed = Date.now() - startTime
+      const progress = Math.min((elapsed / pauseMs) * 100, 100)
+      setTimerProgress(progress)
 
-      if (currentStep < steps) {
-        timerRef.current = setTimeout(updateProgress, interval)
-      } else {
-        setTimerProgress(0) // Reset when timer completes
+      if (elapsed < pauseMs) {
+        timerRef.current = setTimeout(updateProgress, 50)
       }
     }
 
     // Start the timer
-    timerRef.current = setTimeout(updateProgress, interval)
+    timerRef.current = setTimeout(updateProgress, 50)
   }
 
   const stopTimer = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
       setTimerProgress(0)
+    }
+  }
+
+  const completeTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      setTimerProgress(100)
     }
   }
 
@@ -555,7 +558,7 @@ Amen.`,
 
               setTimeout(() => {
                 clearInterval(checkInterval)
-                stopTimer() // Stop timer when pause completes naturally
+                completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
                 resolve()
               }, Number.parseInt(pauseDuration) * 1000)
             })
@@ -856,12 +859,10 @@ Amen.`,
               </Button>
             </div>
 
-            {/* Horizontal Progress Bar - Shows when the next prayer will be displayed */}
-            {timerProgress > 0 && (
-              <div className="w-full mt-4">
-                <Progress value={timerProgress} className="w-full" />
-              </div>
-            )}
+            {/* Horizontal Progress Bar - Always visible during prayer session */}
+            <div className="w-full mt-4">
+              <Progress value={timerProgress} className="w-full" />
+            </div>
           </div>
         </div>
       )}
