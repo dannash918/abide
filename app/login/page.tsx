@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, LogIn, Mail, Lock } from "lucide-react"
+import { ArrowLeft, LogIn, Mail, Lock, Chrome } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
+import { Separator } from "@/components/ui/separator"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -40,6 +41,25 @@ export default function LoginPage() {
         if (error) throw error
         router.push("/")
       }
+    } catch (error: any) {
+      setError(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/'
+        }
+      })
+      if (error) throw error
     } catch (error: any) {
       setError(error.message)
     } finally {
@@ -118,13 +138,26 @@ export default function LoginPage() {
                   }}
                   className="text-sm"
                 >
-                  {isSignUp 
-                    ? "Already have an account? Sign in" 
+                  {isSignUp
+                    ? "Already have an account? Sign in"
                     : "Don't have an account? Sign up"
                   }
                 </Button>
               </div>
             </form>
+
+            <Separator />
+
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full bg-red-500 hover:bg-red-600"
+              onClick={handleGoogleSignIn}
+              disabled={isLoading}
+            >
+              <Chrome className="h-4 w-4 mr-2" />
+              Sign in with Google
+            </Button>
           </CardContent>
         </Card>
       </div>
