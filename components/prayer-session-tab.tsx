@@ -19,6 +19,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const { prayerData, loading, error } = usePrayerData()
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
+  const readingSessionRef = useRef(0)
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"ai" | "screenReader">("screenReader")
@@ -238,12 +239,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
   useEffect(() => {
     if (isPlaying && !isPaused && !isMuted && topicNames.length > 0) {
+      // Increment session to cancel any previous reading
+      readingSessionRef.current++
+
       const currentTopic = topicNames[currentTopicIndex]
       const currentPrayerPoints = groupedPrayers[currentTopic] || []
-      
+
       if (currentPrayerPoints.length > 0) {
+        // Capture the topic index at the start to detect if it gets skipped
+        const originalTopicIndex = currentTopicIndex
+
         // Read all prayer points for the current topic
         const readPrayerPoints = async () => {
+          const currentSession = readingSessionRef.current
           // First, announce the topic
           const topicAnnouncement = currentTopic === 'Praise'
             ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
@@ -289,7 +297,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           // Pause after topic announcement
           await new Promise<void>((resolve) => {
             const checkInterval = setInterval(() => {
-              if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) {
+              if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
                 clearInterval(checkInterval)
                 resolve()
                 return
@@ -301,15 +309,16 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
               resolve()
             }, 2000)
           })
-          
+
+          let readingCompleted = false
           for (let i = 0; i < currentPrayerPoints.length; i++) {
-            if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) break
+            if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
 
             const point = currentPrayerPoints[i]
             const textToSpeak = `${point.text}`
 
             // Double check cancellation right before TTS starts
-            if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted) break
+            if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
 
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
@@ -380,22 +389,42 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
               }
             }
 
-            // Pause after each prayer point (using the selected duration)
-            await new Promise(resolve => setTimeout(resolve, Number.parseInt(pauseDuration) * 1000))
+            // Pause after each prayer point (using the selected duration, but interruptible)
+            await new Promise<void>((resolve) => {
+              const checkInterval = setInterval(() => {
+                if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
+                  clearInterval(checkInterval)
+                  resolve()
+                  return
+                }
+              }, 100)
+
+              setTimeout(() => {
+                clearInterval(checkInterval)
+                resolve()
+              }, Number.parseInt(pauseDuration) * 1000)
+            })
+
+            // If we got to the end of the loop without breaking, mark as completed
+            if (i === currentPrayerPoints.length - 1) {
+              readingCompleted = true
+            }
           }
           setCurrentlyReadingIndex(null)
+
+          // Only advance to next topic if reading completed naturally
+          if (readingCompleted) {
+            setTimeout(() => {
+              if (isPlaying && !pauseRef.current.paused && !isMuted) {
+                nextTopic()
+              }
+            }, 1000) // 1 second pause before next topic
+          }
         }
-        
-        readPrayerPoints().then(() => {
-          // After all prayer points are read, advance to next topic
-          setTimeout(() => {
-            if (isPlaying && !pauseRef.current.paused && !isMuted) {
-              nextTopic()
-            }
-          }, 1000) // 1 second pause before next topic
-        })
+
+        readPrayerPoints()
       }
-      
+
       return () => {
         // Cleanup if needed
       }
