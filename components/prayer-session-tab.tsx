@@ -417,7 +417,7 @@ Amen.`,
             setTimeout(() => {
               clearInterval(checkInterval)
               resolve()
-            }, 2000)
+            }, 500)
           })
 
           let readingCompleted = false
