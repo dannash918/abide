@@ -685,13 +685,12 @@ Amen.`,
                   <SelectItem value="5">5 seconds</SelectItem>
                   <SelectItem value="10">10 seconds</SelectItem>
                   <SelectItem value="15">15 seconds</SelectItem>
+                  <SelectItem value="20">20 seconds</SelectItem>
                   <SelectItem value="30">30 seconds</SelectItem>
                   <SelectItem value="60">1 minute</SelectItem>
                   <SelectItem value="90">1.5 minutes</SelectItem>
                   <SelectItem value="120">2 minutes</SelectItem>
                   <SelectItem value="180">3 minutes</SelectItem>
-                  <SelectItem value="300">5 minutes</SelectItem>
-                  <SelectItem value="600">10 minutes</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">Time to pause and reflect after each prayer point is read</p>
