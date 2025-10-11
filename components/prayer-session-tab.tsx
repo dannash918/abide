@@ -31,7 +31,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [includeLordsPrayer, setIncludeLordsPrayer] = useState(false)
+  const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
