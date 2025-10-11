@@ -23,7 +23,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const readingSessionRef = useRef(0)
   const [selectedCount, setSelectedCount] = useState("5")
   const [pauseDuration, setPauseDuration] = useState("30")
-  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("screenReader")
+  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
   const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
