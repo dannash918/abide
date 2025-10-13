@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ManagePrayersTab } from "@/components/manage-prayers-tab"
 import { PrayerSessionTab } from "@/components/prayer-session-tab"
@@ -12,6 +13,13 @@ import type { PrayerData } from "@/lib/types"
 export default function PrayerApp() {
   const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState("manage")
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [user, loading, router])
 
   if (loading) {
     return (
@@ -22,6 +30,10 @@ export default function PrayerApp() {
         </div>
       </div>
     )
+  }
+
+  if (!user) {
+    return null
   }
 
   return (
