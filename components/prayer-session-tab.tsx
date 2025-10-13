@@ -32,6 +32,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
+  const [silenceOption, setSilenceOption] = useState("30")
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
@@ -105,6 +106,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
       selectedTopics = shuffledTopics.slice(0, count)
+    }
+
+    // Add silence topic after prayer topics, before Lord's Prayer if selected
+    if (silenceOption !== 'skip') {
+      const silencePoints: PrayerPoint[] = [{
+        id: 'silence-1',
+        text: 'Take a moment to be still and listen for God\'s voice.',
+        topicName: 'Silence',
+        verseReference: 'Psalm 46:10 - "Be still, and know that I am God"'
+      }]
+
+      grouped['Silence'] = silencePoints
+      selectedTopics.push('Silence')
     }
 
     // Add Lord's Prayer at the end if selected
@@ -279,17 +293,23 @@ Amen.`,
       clearTimeout(timerRef.current)
     }
 
-    const pauseMs = Number.parseInt(pauseDuration) * 1000
+    // Determine the duration based on the current topic
+    const currentTopic = topicNames[currentTopicIndex]
+    const isSilencing = currentTopic === 'Silence'
+    const effectiveDuration = isSilencing
+      ? Number.parseInt(silenceOption) * 1000
+      : Number.parseInt(pauseDuration) * 1000
+
     const startTime = Date.now()
 
     setTimerProgress(0) // Reset to empty
 
     const updateProgress = () => {
       const elapsed = Date.now() - startTime
-      const progress = Math.min((elapsed / pauseMs) * 100, 100)
+      const progress = Math.min((elapsed / effectiveDuration) * 100, 100)
       setTimerProgress(progress)
 
-      if (elapsed < pauseMs) {
+      if (elapsed < effectiveDuration) {
         timerRef.current = setTimeout(updateProgress, 50)
       }
     }
@@ -334,29 +354,68 @@ Amen.`,
         // Read all prayer points for the current topic
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
-          // First, announce the topic
-          const topicAnnouncement = currentTopic === 'Praise'
-            ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
-            : currentTopic === 'Lord\'s Prayer'
-            ? `Let's finish with the Lord's Prayer`
-            : `Pray for ${currentTopic}`
-          if (voiceType === "elevenlabs") {
-            try {
-              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=elevenlabs`)
-              if (response.ok) {
-                const blob = await response.blob()
-                const audio = new Audio(URL.createObjectURL(blob))
-                audio.play()
-                await new Promise<void>((resolve) => {
-                  audio.onended = () => resolve()
-                  audio.onerror = () => resolve()
-                })
-              } else {
-                throw new Error('API failed')
+
+          // First, announce the topic (skip for silence)
+          if (currentTopic !== 'Silence') {
+            const topicAnnouncement = currentTopic === 'Praise'
+              ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
+              : currentTopic === 'Lord\'s Prayer'
+              ? `Let's finish with the Lord's Prayer`
+              : `Pray for ${currentTopic}`
+            if (voiceType === "elevenlabs") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=elevenlabs`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => resolve()
+                    audio.onerror = () => resolve()
+                  })
+                } else {
+                  throw new Error('API failed')
+                }
+              } catch (error) {
+                console.warn('Failed to generate topic announcement with ElevenLabs:', error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                  window.speechSynthesis.speak(topicUtterance)
+                  await new Promise<void>((resolve) => {
+                    topicUtterance.onend = () => resolve()
+                    topicUtterance.onerror = () => resolve()
+                  })
+                }
               }
-            } catch (error) {
-              console.warn('Failed to generate topic announcement with ElevenLabs:', error)
-              // Fallback to browser speech synthesis
+            } else if (voiceType === "polly") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=polly`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => resolve()
+                    audio.onerror = () => resolve()
+                  })
+                } else {
+                  throw new Error('API failed')
+                }
+              } catch (error) {
+                console.warn('Failed to generate topic announcement with Polly:', error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                  window.speechSynthesis.speak(topicUtterance)
+                  await new Promise<void>((resolve) => {
+                    topicUtterance.onend = () => resolve()
+                    topicUtterance.onerror = () => resolve()
+                  })
+                }
+              }
+            } else {
+              // Use screen reader directly
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
                 window.speechSynthesis.speak(topicUtterance)
@@ -365,42 +424,6 @@ Amen.`,
                   topicUtterance.onerror = () => resolve()
                 })
               }
-            }
-          } else if (voiceType === "polly") {
-            try {
-              const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=polly`)
-              if (response.ok) {
-                const blob = await response.blob()
-                const audio = new Audio(URL.createObjectURL(blob))
-                audio.play()
-                await new Promise<void>((resolve) => {
-                  audio.onended = () => resolve()
-                  audio.onerror = () => resolve()
-                })
-              } else {
-                throw new Error('API failed')
-              }
-            } catch (error) {
-              console.warn('Failed to generate topic announcement with Polly:', error)
-              // Fallback to browser speech synthesis
-              if (typeof window !== "undefined" && window.speechSynthesis) {
-                const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                window.speechSynthesis.speak(topicUtterance)
-                await new Promise<void>((resolve) => {
-                  topicUtterance.onend = () => resolve()
-                  topicUtterance.onerror = () => resolve()
-                })
-              }
-            }
-          } else {
-            // Use screen reader directly
-            if (typeof window !== "undefined" && window.speechSynthesis) {
-              const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-              window.speechSynthesis.speak(topicUtterance)
-              await new Promise<void>((resolve) => {
-                topicUtterance.onend = () => resolve()
-                topicUtterance.onerror = () => resolve()
-              })
             }
           }
 
@@ -542,7 +565,7 @@ Amen.`,
               }
             }
 
-            // Pause after each prayer point (using the selected duration, but interruptible) with timer
+            // Pause after each prayer point (using the selected duration for non-silence, selected silence duration for silence)
             await new Promise<void>((resolve) => {
               // Start the timer when pause begins
               startTimer()
@@ -556,11 +579,16 @@ Amen.`,
                 }
               }, 100)
 
+              // Use silence duration for silence topic, otherwise use regular pause duration
+              const durationMs = currentTopic === 'Silence'
+                ? Number.parseInt(silenceOption) * 1000
+                : Number.parseInt(pauseDuration) * 1000
+
               setTimeout(() => {
                 clearInterval(checkInterval)
                 completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
                 resolve()
-              }, Number.parseInt(pauseDuration) * 1000)
+              }, durationMs)
             })
 
             // If we got to the end of the loop without breaking, mark as completed
@@ -672,7 +700,6 @@ Amen.`,
                 You have {prayerData.topics.length} total topics available
               </p>
             </div>
-
             <div className="space-y-3">
               <Label htmlFor="pause" className="text-base">
                 Pause After Each Prayer
@@ -695,7 +722,28 @@ Amen.`,
               </Select>
               <p className="text-sm text-muted-foreground">Time to pause and reflect after each prayer point is read</p>
             </div>
-
+            <div className="space-y-3">
+              <Label htmlFor="silence" className="text-base font-medium">
+                Moment of Silence
+              </Label>
+              <Select value={silenceOption} onValueChange={setSilenceOption}>
+                <SelectTrigger id="silence" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="skip">Skip silence</SelectItem>
+                  <SelectItem value="15">15 seconds</SelectItem>
+                  <SelectItem value="30">30 seconds</SelectItem>
+                  <SelectItem value="45">45 seconds</SelectItem>
+                  <SelectItem value="60">1 minute</SelectItem>
+                  <SelectItem value="90">1.5 minutes</SelectItem>
+                  <SelectItem value="120">2 minutes</SelectItem>
+                  <SelectItem value="180">3 minutes</SelectItem>
+                  <SelectItem value="300">5 minutes</SelectItem>
+                  
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-3">
               <Label htmlFor="voice" className="text-base">
                 Voice Type
@@ -764,8 +812,9 @@ Amen.`,
           <div className={`${isFullscreen ? "max-w-4xl w-full" : ""}`}>
             {topicNames[currentTopicIndex] && (
               <div className="text-center mb-8">
+
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
