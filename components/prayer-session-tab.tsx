@@ -724,7 +724,7 @@ Amen.`,
             </div>
             <div className="space-y-3">
               <Label htmlFor="silence" className="text-base font-medium">
-                Moment of Silence
+                Moments of Silence
               </Label>
               <Select value={silenceOption} onValueChange={setSilenceOption}>
                 <SelectTrigger id="silence" className="w-full">
@@ -743,6 +743,7 @@ Amen.`,
                   
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">Include a moment of silence to reflect after your prayer topics</p>
             </div>
             <div className="space-y-3">
               <Label htmlFor="voice" className="text-base">
