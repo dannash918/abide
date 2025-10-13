@@ -566,30 +566,33 @@ Amen.`,
             }
 
             // Pause after each prayer point (using the selected duration for non-silence, selected silence duration for silence)
-            await new Promise<void>((resolve) => {
-              // Start the timer when pause begins
-              startTimer()
+            // Skip pause for Lord's Prayer to finish immediately
+            if (currentTopic !== 'Lord\'s Prayer') {
+              await new Promise<void>((resolve) => {
+                // Start the timer when pause begins
+                startTimer()
 
-              const checkInterval = setInterval(() => {
-                if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
+                const checkInterval = setInterval(() => {
+                  if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
+                    clearInterval(checkInterval)
+                    stopTimer() // Stop timer if pause is interrupted
+                    resolve()
+                    return
+                  }
+                }, 100)
+
+                // Use silence duration for silence topic, otherwise use regular pause duration
+                const durationMs = currentTopic === 'Silence'
+                  ? Number.parseInt(silenceOption) * 1000
+                  : Number.parseInt(pauseDuration) * 1000
+
+                setTimeout(() => {
                   clearInterval(checkInterval)
-                  stopTimer() // Stop timer if pause is interrupted
+                  completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
                   resolve()
-                  return
-                }
-              }, 100)
-
-              // Use silence duration for silence topic, otherwise use regular pause duration
-              const durationMs = currentTopic === 'Silence'
-                ? Number.parseInt(silenceOption) * 1000
-                : Number.parseInt(pauseDuration) * 1000
-
-              setTimeout(() => {
-                clearInterval(checkInterval)
-                completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
-                resolve()
-              }, durationMs)
-            })
+                }, durationMs)
+              })
+            }
 
             // If we got to the end of the loop without breaking, mark as completed
             if (i === currentPrayerPoints.length - 1) {
