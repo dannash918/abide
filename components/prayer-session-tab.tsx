@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
+import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, ChevronLeft, ChevronRight, Settings } from "lucide-react"
 import type { PrayerData, PrayerPoint } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 
 type PrayerFlow = 'everyday' | 'your-prayers'
 
@@ -26,6 +27,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [selectedTotalTime, setSelectedTotalTime] = useState("10")
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
@@ -803,8 +805,42 @@ Amen.`,
       )}
       {!isPlaying ? (
         <Card className="border-primary/20 bg-card/50 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-2xl">Prayer Session</CardTitle>
+          <CardHeader className="relative">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl">Prayer Session</CardTitle>
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Voice Settings</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="voice-modal" className="text-base">
+                        Voice Type
+                      </Label>
+                      <Select value={voiceType} onValueChange={(value: "elevenlabs" | "polly" | "screenReader") => setVoiceType(value)}>
+                        <SelectTrigger id="voice-modal" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="polly">Ruth (AWS)</SelectItem>
+                          <SelectItem value="elevenlabs">Rachel (ElevenLabs)</SelectItem>
+                          <SelectItem value="screenReader">Screen Reader</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => setIsSettingsOpen(false)}>Done</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <div className="space-y-3 pt-2">
               <Label htmlFor="flow" className="text-base">
                 Prayer Flow
@@ -896,21 +932,6 @@ Amen.`,
                   <SelectItem value="15">15 minutes</SelectItem>
                   <SelectItem value="20">20 minutes</SelectItem>
                   <SelectItem value="30">30 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="voice" className="text-base">
-                Voice Type
-              </Label>
-              <Select value={voiceType} onValueChange={(value: "elevenlabs" | "polly" | "screenReader") => setVoiceType(value)}>
-                <SelectTrigger id="voice" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="polly">Ruth (AWS)</SelectItem>
-                  <SelectItem value="elevenlabs">Rachel (ElevenLabs)</SelectItem>
-                  <SelectItem value="screenReader">Screen Reader</SelectItem>
                 </SelectContent>
               </Select>
             </div>
