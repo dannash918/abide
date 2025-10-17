@@ -12,6 +12,8 @@ import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 
+type PrayerFlow = 'everyday' | 'praying-for-others'
+
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
 }
@@ -33,6 +35,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
   const [silenceOption, setSilenceOption] = useState("30")
+  const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
@@ -78,8 +81,21 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       grouped[topicName].push(point)
     })
 
-    // Add praise if selected
     let selectedTopics: string[]
+    let includePraise = false
+    let includeLordsPrayer = false
+    let includeSilence = false
+
+    // Apply flow-specific settings
+    if (selectedFlow === 'everyday') {
+      includePraise = true
+      includeSilence = true
+      includeLordsPrayer = true
+    } else if (selectedFlow === 'praying-for-others') {
+      // Only topics, no praise, silence, or Lord's Prayer
+    }
+
+    // Add praise if selected by flow
     if (includePraise) {
       // Pick random praise point
       const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
@@ -101,15 +117,15 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
       selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
     } else {
-      // Shuffle topics without praise
+      // Shuffle topics without praise (for praying-for-others flow)
       const topicNames = Object.keys(grouped)
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
       selectedTopics = shuffledTopics.slice(0, count)
     }
 
-    // Add silence topic after prayer topics, before Lord's Prayer if selected
-    if (silenceOption !== 'skip') {
+    // Add silence topic after prayer topics, before Lord's Prayer if selected by flow
+    if (includeSilence && silenceOption !== 'skip') {
       const silencePoints: PrayerPoint[] = [{
         id: 'silence-1',
         text: 'Take a moment to be still and listen for God\'s voice.',
@@ -121,7 +137,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       selectedTopics.push('Silence')
     }
 
-    // Add Lord's Prayer at the end if selected
+    // Add Lord's Prayer at the end if selected by flow
     if (includeLordsPrayer) {
       const lordsPrayerPoints: PrayerPoint[] = [{
         id: 'lords-prayer-1',
@@ -167,12 +183,12 @@ Amen.`,
       if ('wakeLock' in navigator) {
         const wakeLockSentinel = await navigator.wakeLock.request('screen')
         setWakeLock(wakeLockSentinel)
-        
+
         // Handle wake lock release
         wakeLockSentinel.addEventListener('release', () => {
           console.log('Wake lock was released')
           setWakeLock(null)
-          
+
           // Try to re-request wake lock if prayer is still active
           if (isPlaying) {
             setTimeout(async () => {
@@ -655,34 +671,55 @@ Amen.`,
           <CardHeader>
             <CardTitle className="text-2xl">Prayer Session</CardTitle>
             <CardDescription>Select how many topics you'd like to pray through</CardDescription>
+            <div className="space-y-3 pt-2">
+              <Label htmlFor="flow" className="text-base">
+                Prayer Flow
+              </Label>
+              <Select value={selectedFlow} onValueChange={(value: PrayerFlow) => setSelectedFlow(value)}>
+                <SelectTrigger id="flow" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="everyday">Everyday Flow</SelectItem>
+                  <SelectItem value="praying-for-others">Praying for Others</SelectItem>
+                </SelectContent>
+              </Select>
+              {selectedFlow === 'everyday' && (
+                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>Praise</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>Topics</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>Silence</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>Lord's Prayer</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {selectedFlow === 'praying-for-others' && (
+                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>Topics</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-praise"
-                checked={includePraise}
-                onCheckedChange={(checked) => setIncludePraise(!!checked)}
-              />
-              <Label
-                htmlFor="include-praise"
-                className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Start with praise
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="include-lords-prayer"
-                checked={includeLordsPrayer}
-                onCheckedChange={(checked) => setIncludeLordsPrayer(!!checked)}
-              />
-              <Label
-                htmlFor="include-lords-prayer"
-                className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                End with Lord's Prayer
-              </Label>
-            </div>
+
             <div className="space-y-3">
               <Label htmlFor="count" className="text-base">
                 Number of Topics
