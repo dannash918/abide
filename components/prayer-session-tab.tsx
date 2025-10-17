@@ -28,6 +28,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
   const [silencePreference, setSilencePreference] = useState<string>("automatic")
+  const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // Calculate selectedCount based on total time (more time = more topics)
@@ -42,7 +43,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     return 10
   }
 
-  const selectedCount = getSelectedCountFromTime(selectedTotalTime)
+  const selectedCount = topicCountPreference === "automatic"
+    ? getSelectedCountFromTime(selectedTotalTime)
+    : Number.parseInt(topicCountPreference)
   const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -856,6 +859,24 @@ Amen.`,
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="topics-modal" className="text-base">
+                        Number of Prayer Topics
+                      </Label>
+                      <Select value={topicCountPreference} onValueChange={setTopicCountPreference}>
+                        <SelectTrigger id="topics-modal" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="automatic">Automatic (based on session length)</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="7">7</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button onClick={() => setIsSettingsOpen(false)}>Done</Button>
@@ -951,6 +972,7 @@ Amen.`,
                   <SelectItem value="5">5 minutes</SelectItem>
                   <SelectItem value="8">8 minutes</SelectItem>
                   <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="12">12 minutes</SelectItem>
                   <SelectItem value="15">15 minutes</SelectItem>
                   <SelectItem value="20">20 minutes</SelectItem>
                   <SelectItem value="30">30 minutes</SelectItem>
