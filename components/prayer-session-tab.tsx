@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 
 type PrayerFlow = 'everyday' | 'your-prayers'
 
@@ -28,8 +28,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
   const [silencePreference, setSilencePreference] = useState<string>("automatic")
-  const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
+
 
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
@@ -814,75 +815,16 @@ Amen.`,
           <CardHeader className="relative">
             <div className="flex items-center justify-between">
               <CardTitle className="text-2xl">Prayer Session</CardTitle>
-              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Voice Settings</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-3">
-                      <Label htmlFor="voice-modal" className="text-base">
-                        Voice Type
-                      </Label>
-                      <Select value={voiceType} onValueChange={(value: "elevenlabs" | "polly" | "screenReader") => setVoiceType(value)}>
-                        <SelectTrigger id="voice-modal" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="polly">Ruth (AWS)</SelectItem>
-                          <SelectItem value="elevenlabs">Rachel (ElevenLabs)</SelectItem>
-                          <SelectItem value="screenReader">Screen Reader</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-3">
-                      <Label htmlFor="silence-modal" className="text-base">
-                        Silence Time
-                      </Label>
-                      <Select value={silencePreference} onValueChange={setSilencePreference}>
-                        <SelectTrigger id="silence-modal" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="automatic">Automatic (based on session length)</SelectItem>
-                          <SelectItem value="30">30 seconds</SelectItem>
-                          <SelectItem value="45">45 seconds</SelectItem>
-                          <SelectItem value="60">60 seconds</SelectItem>
-                          <SelectItem value="90">90 seconds</SelectItem>
-                          <SelectItem value="120">2 minutes</SelectItem>
-                          <SelectItem value="180">3 minutes</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-3">
-                      <Label htmlFor="topics-modal" className="text-base">
-                        Number of Prayer Topics
-                      </Label>
-                      <Select value={topicCountPreference} onValueChange={setTopicCountPreference}>
-                        <SelectTrigger id="topics-modal" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="automatic">Automatic (based on session length)</SelectItem>
-                          <SelectItem value="3">3</SelectItem>
-                          <SelectItem value="4">4</SelectItem>
-                          <SelectItem value="5">5</SelectItem>
-                          <SelectItem value="7">7</SelectItem>
-                          <SelectItem value="10">10</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={() => setIsSettingsOpen(false)}>Done</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <PrayerSettingsModal
+                open={isSettingsOpen}
+                onOpenChange={setIsSettingsOpen}
+                voiceType={voiceType}
+                setVoiceType={setVoiceType}
+                silencePreference={silencePreference}
+                setSilencePreference={setSilencePreference}
+                topicCountPreference={topicCountPreference}
+                setTopicCountPreference={setTopicCountPreference}
+              />
             </div>
             <div className="space-y-3 pt-2">
               <Label htmlFor="flow" className="text-base">
@@ -921,7 +863,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">3</span>
                         </div>
-                        <span className="text-sm font-medium">Your Prayers ({selectedCount})</span>
+                        <span className="text-sm font-medium">Your Prayers <span className="ml-0 text-xs text-muted-foreground">({selectedCount})</span></span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
