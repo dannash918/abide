@@ -76,6 +76,67 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     : silencePreference
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        const wakeLockSentinel = await navigator.wakeLock.request('screen')
+        setWakeLock(wakeLockSentinel)
+
+        wakeLockSentinel.addEventListener('release', () => {
+          console.log('Wake lock was released')
+          setWakeLock(null)
+
+          // Try to re-request wake lock if prayer session is still active and we were recently released
+          if (isPlaying && document.visibilityState === 'visible') {
+            setTimeout(async () => {
+              try {
+                const newWakeLock = await navigator.wakeLock.request('screen')
+                setWakeLock(newWakeLock)
+                console.log('Wake lock re-acquired after release')
+                newWakeLock.addEventListener('release', () => {
+                  setWakeLock(null)
+                })
+              } catch (err) {
+                console.warn('Failed to re-request wake lock after release:', err)
+              }
+            }, 1000)
+          }
+        })
+
+        // Listen for visibility change to re-acquire wake lock when tab becomes visible again
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && isPlaying && !wakeLock) {
+            setTimeout(async () => {
+              try {
+                const newWakeLock = await navigator.wakeLock.request('screen')
+                setWakeLock(newWakeLock)
+                console.log('Wake lock re-acquired after tab became visible')
+                newWakeLock.addEventListener('release', () => {
+                  setWakeLock(null)
+                })
+              } catch (err) {
+                console.warn('Failed to re-request wake lock after visibility change:', err)
+              }
+            }, 500)
+          }
+        })
+
+        console.log('Wake lock acquired for prayer session')
+      }
+    } catch (err) {
+      console.warn('Failed to acquire wake lock:', err)
+      setWakeLock(null)
+    }
+  }
+
+  const releaseWakeLock = () => {
+    if (wakeLock) {
+      wakeLock.release()
+      setWakeLock(null)
+    }
+  }
+
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
   const [topicNames, setTopicNames] = useState<string[]>([])
@@ -313,36 +374,7 @@ Amen.`,
     console.log('Topics selected:', selectedTopics.length, 'total')
 
     // Request wake lock to prevent screen from turning off
-    try {
-      if ('wakeLock' in navigator) {
-        const wakeLockSentinel = await navigator.wakeLock.request('screen')
-        setWakeLock(wakeLockSentinel)
-
-        // Handle wake lock release
-        wakeLockSentinel.addEventListener('release', () => {
-          console.log('Wake lock was released')
-          setWakeLock(null)
-
-          // Try to re-request wake lock if prayer is still active
-          if (isPlaying) {
-            setTimeout(async () => {
-              try {
-                const newWakeLock = await navigator.wakeLock.request('screen')
-                setWakeLock(newWakeLock)
-                newWakeLock.addEventListener('release', () => {
-                  setWakeLock(null)
-                })
-              } catch (err) {
-                console.warn('Failed to re-request wake lock:', err)
-              }
-            }, 1000)
-          }
-        })
-      }
-    } catch (err) {
-      console.warn('Wake lock request failed:', err)
-      // Continue with prayer session even if wake lock fails
-    }
+    await requestWakeLock()
   }
 
   const stopPraying = () => {
@@ -489,15 +521,18 @@ Amen.`,
     }
   }
 
-  // Cleanup timers on unmount
+  // Cleanup timers and wake lock on unmount
   useEffect(() => {
     return () => {
       stopTimer()
       if (totalTimeIntervalRef.current) {
         clearInterval(totalTimeIntervalRef.current)
       }
+      if (wakeLock) {
+        wakeLock.release()
+      }
     }
-  }, [])
+  }, [wakeLock])
 
   // Load user settings on component mount
   useEffect(() => {
