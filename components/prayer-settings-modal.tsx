@@ -6,12 +6,13 @@ import { Settings, Volume2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/lib/supabase"
 
 type PrayerSettingsModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  voiceType: "elevenlabs" | "polly" | "screenReader"
-  setVoiceType: (value: "elevenlabs" | "polly" | "screenReader") => void
+  voiceType: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader"
+  setVoiceType: (value: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => void
   silencePreference: string
   setSilencePreference: (value: string) => void
   topicCountPreference: string
@@ -29,8 +30,9 @@ export function PrayerSettingsModal({
   setTopicCountPreference,
 }: PrayerSettingsModalProps) {
   const [isPlayingSample, setIsPlayingSample] = useState(false)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
 
-  const playSampleVoice = async (selectedVoice: "elevenlabs" | "polly" | "screenReader") => {
+  const playSampleVoice = async (selectedVoice: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
     if (isPlayingSample) return
 
     const sampleText = "Abide in Me, and I will Abide in you."
@@ -51,6 +53,39 @@ export function PrayerSettingsModal({
         }
       } else if (selectedVoice === "polly") {
         const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=polly`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
+      } else if (selectedVoice === "danielle") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=danielle`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
+      } else if (selectedVoice === "patrick") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=patrick`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
+      } else if (selectedVoice === "stephen") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=stephen&type=generative`)
         if (response.ok) {
           const blob = await response.blob()
           const audio = new Audio(URL.createObjectURL(blob))
@@ -81,15 +116,14 @@ export function PrayerSettingsModal({
     }
   }
 
-  const handleVoiceChange = (value: "elevenlabs" | "polly" | "screenReader") => {
+  const handleVoiceChange = (value: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
     setVoiceType(value)
-    playSampleVoice(value)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8">
+        <Button variant="outline" size="icon" className="h-8 w-8" disabled={isPlayingSample}>
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -109,6 +143,9 @@ export function PrayerSettingsModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="polly">Ruth</SelectItem>
+                  <SelectItem value="danielle">Danielle</SelectItem>
+                  <SelectItem value="patrick">Patrick</SelectItem>
+                  <SelectItem value="stephen">Stephen</SelectItem>
                   <SelectItem value="elevenlabs">Rachel</SelectItem>
                   <SelectItem value="screenReader">Screen Reader</SelectItem>
                 </SelectContent>
@@ -163,7 +200,40 @@ export function PrayerSettingsModal({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+          <Button
+            onClick={async () => {
+              try {
+                setIsSavingSettings(true)
+                const { data: { user } } = await supabase.auth.getUser()
+
+                if (user) {
+                  // Use upsert instead of manual insert/update - it's more reliable
+                  const { error } = await supabase
+                    .from('user_settings')
+                    .upsert({
+                      user_id: user.id,
+                      voice_type: voiceType,
+                      silence_preference: silencePreference,
+                      topic_count_preference: topicCountPreference
+                    }, {
+                      onConflict: 'user_id'
+                    })
+
+                  if (error) {
+                    console.error('Failed to save settings:', error)
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to save settings:', error)
+              } finally {
+                setIsSavingSettings(false)
+                onOpenChange(false)
+              }
+            }}
+            disabled={isSavingSettings || isPlayingSample}
+          >
+            {isSavingSettings ? 'Saving...' : 'Done'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

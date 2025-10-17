@@ -23,6 +23,19 @@ CREATE TABLE IF NOT EXISTS prayer_points (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_settings table
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  voice_type VARCHAR(50) DEFAULT 'polly',
+  silence_preference VARCHAR(50) DEFAULT 'automatic',
+  topic_count_preference VARCHAR(50) DEFAULT 'automatic',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_topics_user_id ON topics(user_id);
 CREATE INDEX IF NOT EXISTS idx_prayer_points_user_id ON prayer_points(user_id);
@@ -67,11 +80,30 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Enable RLS for user_settings
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for user_settings
+CREATE POLICY "Users can view their own settings" ON user_settings
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own settings" ON user_settings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own settings" ON user_settings
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own settings" ON user_settings
+  FOR DELETE USING (auth.uid() = user_id);
+
 -- Create triggers for updated_at
 CREATE TRIGGER update_topics_updated_at BEFORE UPDATE ON topics
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_prayer_points_updated_at BEFORE UPDATE ON prayer_points
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert some sample data (optional - remove if you don't want sample data)

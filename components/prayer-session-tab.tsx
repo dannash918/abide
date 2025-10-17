@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
+import { supabase } from "@/lib/supabase"
 
 type PrayerFlow = 'everyday' | 'your-prayers'
 
@@ -26,10 +27,11 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const readingSessionRef = useRef(0)
   const [selectedTotalTime, setSelectedTotalTime] = useState("10")
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
-  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
+  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader">("polly")
   const [silencePreference, setSilencePreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
+  const [isLoading, setIsLoading] = useState(true)
 
 
   // Calculate selectedCount based on total time (more time = more topics)
@@ -497,6 +499,35 @@ Amen.`,
     }
   }, [])
 
+  // Load user settings on component mount
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user) {
+          const { data, error } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+
+          if (data && !error) {
+            setVoiceType(data.voice_type as "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader")
+            setSilencePreference(data.silence_preference)
+            setTopicCountPreference(data.topic_count_preference)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load user settings:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUserSettings()
+  }, [])
+
   useEffect(() => {
     if (isPlaying && !isPaused && !isMuted && topicNames.length > 0) {
       // Increment session to cancel any previous reading
@@ -548,9 +579,9 @@ Amen.`,
                   })
                 }
               }
-            } else if (voiceType === "polly") {
+            } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=polly`)
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
                   const audio = new Audio(URL.createObjectURL(blob))
@@ -563,7 +594,33 @@ Amen.`,
                   throw new Error('API failed')
                 }
               } catch (error) {
-                console.warn('Failed to generate topic announcement with Polly:', error)
+                console.warn(`Failed to generate topic announcement with ${voiceType}:`, error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                  window.speechSynthesis.speak(topicUtterance)
+                  await new Promise<void>((resolve) => {
+                    topicUtterance.onend = () => resolve()
+                    topicUtterance.onerror = () => resolve()
+                  })
+                }
+              }
+            } else if (voiceType === "stephen") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=stephen&type=generative`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => resolve()
+                    audio.onerror = () => resolve()
+                  })
+                } else {
+                  throw new Error('API failed')
+                }
+              } catch (error) {
+                console.warn('Failed to generate topic announcement with Stephen generative:', error)
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
@@ -575,7 +632,7 @@ Amen.`,
                 }
               }
             } else {
-              // Use screen reader directly
+              // Screen reader
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
                 window.speechSynthesis.speak(topicUtterance)
@@ -659,9 +716,9 @@ Amen.`,
                   setCurrentlyReadingIndex(null)
                 }
               }
-            } else if (voiceType === "polly") {
+            } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=polly`)
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
                   const audio = new Audio(URL.createObjectURL(blob))
@@ -680,7 +737,50 @@ Amen.`,
                   throw new Error('API failed')
                 }
               } catch (error) {
-                console.warn('Failed to fetch TTS for prayer point with Polly:', error)
+                console.warn(`Failed to fetch TTS for prayer point with ${voiceType}:`, error)
+                // Fallback to browser speech synthesis
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                  const utterance = new SpeechSynthesisUtterance(textToSpeak)
+                  utterance.rate = 0.75
+                  utterance.pitch = 1.0
+                  utterance.volume = 0.9
+                  window.speechSynthesis.speak(utterance)
+                  await new Promise<void>((resolve) => {
+                    utterance.onend = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    utterance.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
+                  setCurrentlyReadingIndex(null)
+                }
+              }
+            } else if (voiceType === "stephen") {
+              try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=stephen&type=generative`)
+                if (response.ok) {
+                  const blob = await response.blob()
+                  const audio = new Audio(URL.createObjectURL(blob))
+                  audio.play()
+                  await new Promise<void>((resolve) => {
+                    audio.onended = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                    audio.onerror = () => {
+                      setCurrentlyReadingIndex(null)
+                      resolve()
+                    }
+                  })
+                } else {
+                  throw new Error('API failed')
+                }
+              } catch (error) {
+                console.warn('Failed to fetch TTS for prayer point with Stephen generative:', error)
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak)
@@ -703,7 +803,7 @@ Amen.`,
                 }
               }
             } else {
-              // Use screen reader directly
+              // Screen reader
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const utterance = new SpeechSynthesisUtterance(textToSpeak)
                 utterance.rate = 0.75

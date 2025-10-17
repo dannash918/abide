@@ -4,13 +4,24 @@ import { PollyClient, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-p
 export async function GET(request: NextRequest) {
   const text = request.nextUrl.searchParams.get('text')
   const provider = request.nextUrl.searchParams.get('provider') || 'elevenlabs'
+  const type = request.nextUrl.searchParams.get('type') // generative or long-form
   const rate = parseFloat(request.nextUrl.searchParams.get('rate') || '0.8') // Default speed like ElevenLabs
 
   if (!text) {
     return NextResponse.json({ error: 'Text parameter required' }, { status: 400 })
   }
 
-  if (provider === 'polly') {
+  if (provider === 'screenReader') {
+    // Screen reader is handled on the frontend, return empty response
+    return new NextResponse(new Uint8Array(0), {
+      headers: {
+        'Content-Type': 'audio/mpeg',
+      },
+    })
+  }
+
+  // Handle AWS Polly voices
+  if (provider === 'polly' || provider === 'danielle' || provider === 'patrick' || provider === 'stephen') {
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
     const region = process.env.AWS_REGION || 'us-east-1'
@@ -28,13 +39,30 @@ export async function GET(request: NextRequest) {
         },
       })
 
-      const voiceId = (process.env.AWS_POLLY_VOICE_ID || 'Ruth') as VoiceId // Default: Joanna voice
+      let voiceId: string = 'Ruth' // Default
+      let engine: 'long-form' | 'generative' = 'long-form'
+
+      if (provider === 'polly') {
+        voiceId = 'Ruth'
+      } else if (provider === 'danielle') {
+        voiceId = 'Danielle'
+      } else if (provider === 'patrick') {
+        voiceId = 'Patrick'
+      } else if (provider === 'stephen') {
+        voiceId = 'Stephen'
+        engine = type === 'generative' ? 'generative' : 'long-form'
+      }
+
+      // Wrap text in SSML to control speed at 85%
+      const ssmlText = `<speak><prosody rate="10%">${text}</prosody></speak>`
 
       const command = new SynthesizeSpeechCommand({
-        Text: text,
+        Text: ssmlText,
         OutputFormat: 'mp3',
-        VoiceId: voiceId,
-        Engine: 'long-form',
+        VoiceId: voiceId as VoiceId,
+        Engine: engine,
+        TextType: 'ssml',
+        SpeechMarkTypes: [],
       })
 
       const response = await pollyClient.send(command)
@@ -56,7 +84,7 @@ export async function GET(request: NextRequest) {
       console.error('Polly API error:', error)
       return NextResponse.json({ error: 'Failed to generate audio with Polly' }, { status: 500 })
     }
-  } else {
+  } else if (provider === 'elevenlabs') {
     // Default to ElevenLabs
     const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY
     if (!elevenlabsApiKey) {
