@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 
-type PrayerFlow = 'everyday' | 'praying-for-others'
+type PrayerFlow = 'everyday' | 'your-prayers'
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
@@ -23,9 +23,23 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
   const readingSessionRef = useRef(0)
-  const [selectedCount, setSelectedCount] = useState("5")
-  const [pauseDuration, setPauseDuration] = useState("30")
+  const [selectedTotalTime, setSelectedTotalTime] = useState("10")
+  const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
+
+  // Calculate selectedCount based on total time (more time = more topics)
+  const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
+    const minutes = Number.parseInt(totalTimeMinutes)
+    // Scale: 5min=2 topics, 8min=3 topics, 10min=4 topics, 15min=5 topics, 20min=6 topics, 30min=8 topics
+    if (minutes <= 5) return 2
+    if (minutes <= 8) return 3
+    if (minutes <= 10) return 4
+    if (minutes <= 15) return 5
+    if (minutes <= 20) return 6
+    return 8
+  }
+
+  const selectedCount = getSelectedCountFromTime(selectedTotalTime)
   const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -34,8 +48,21 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
-  const [silenceOption, setSilenceOption] = useState("90")
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
+
+  // Calculate silenceOption based on total time (longer sessions = longer silence)
+  const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
+    const minutes = Number.parseInt(totalTimeMinutes)
+    // Scale: 5min=30s, 8min=45s, 10min=60s, 15min=90s, 20min=120s, 30min=180s
+    if (minutes <= 5) return "30"
+    if (minutes <= 8) return "45"
+    if (minutes <= 10) return "60"
+    if (minutes <= 15) return "90"
+    if (minutes <= 20) return "120"
+    return "180"
+  }
+
+  const silenceOption = getSilenceTimeFromTotalTime(selectedTotalTime)
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
@@ -44,6 +71,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [currentlyReadingIndex, setCurrentlyReadingIndex] = useState<number | null>(null)
   const [timerProgress, setTimerProgress] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [totalElapsedSeconds, setTotalElapsedSeconds] = useState(0)
+  const totalTimeIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const makeSpeakableText = (text: string): string => {
     // Clean up text for TTS: replace newlines with spaces, clean up quotes, etc.
@@ -91,7 +120,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       includePraise = true
       includeSilence = true
       includeLordsPrayer = true
-    } else if (selectedFlow === 'praying-for-others') {
+    } else if (selectedFlow === 'your-prayers') {
       // Only topics, no praise, silence, or Lord's Prayer
     }
 
@@ -114,13 +143,13 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Shuffle topics and limit by selected count
       const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-      const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
+      const count = Math.min(selectedCount, shuffledTopics.length)
       selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
     } else {
-      // Shuffle topics without praise (for praying-for-others flow)
+      // Shuffle topics without praise (for your-prayers flow)
       const topicNames = Object.keys(grouped)
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-      const count = Math.min(Number.parseInt(selectedCount), shuffledTopics.length)
+      const count = Math.min(selectedCount, shuffledTopics.length)
       selectedTopics = shuffledTopics.slice(0, count)
     }
 
@@ -169,6 +198,31 @@ Amen.`,
       finalGrouped[topicName] = grouped[topicName]
     })
 
+    // Calculate dynamic pause duration
+    const totalSelectedSeconds = Number.parseInt(selectedTotalTime) * 60
+    const silenceSeconds = selectedFlow === 'everyday' && silenceOption !== 'skip' ? Number.parseInt(silenceOption) : 0
+
+    // Count prayer points that will have pauses (excluding Lord's Prayer and Silence)
+    const prayerPointsForPaces = selectedTopics
+      .filter(topicName => topicName !== 'Lord\'s Prayer' && topicName !== 'Silence')
+      .reduce((total, topicName) => total + (grouped[topicName]?.length || 0), 0)
+
+    // Available time for pauses (total time minus silence time)
+    const availableSecondsForPauses = totalSelectedSeconds - silenceSeconds
+
+    // Calculate pause duration per prayer point (minimum 3 seconds)
+    const calculatedPause = prayerPointsForPaces > 0
+      ? Math.max(3, Math.floor(availableSecondsForPauses / prayerPointsForPaces))
+      : 30 // fallback
+
+    setCalculatedPauseDuration(calculatedPause.toString())
+
+    // Start total time tracking
+    setTotalElapsedSeconds(0)
+    totalTimeIntervalRef.current = setInterval(() => {
+      setTotalElapsedSeconds(prev => prev + 1)
+    }, 1000)
+
     setGroupedPrayers(finalGrouped)
     setTopicNames(selectedTopics)
     setCurrentTopicIndex(0)
@@ -177,6 +231,23 @@ Amen.`,
     setIsPlaying(true)
     setIsPaused(false)
     setIsFullscreen(true)
+
+    // Debug logs
+    const totalPrayerPoints = selectedTopics.reduce((total, topicName) => {
+      return total + (grouped[topicName]?.length || 0)
+    }, 0)
+    const totalPauseTime = prayerPointsForPaces * calculatedPause
+
+    console.log('🍃 Prayer Session Started')
+    console.log('Total time selected:', selectedTotalTime, 'minutes')
+    console.log('Silence time:', silenceSeconds, 'seconds')
+    console.log('Time spent praying for topics and pauses:', totalPauseTime, 'seconds')
+    console.log('Total time spent Lord\'s Prayer topic: ~5 seconds (no pause)')
+    console.log('Available time for pauses:', availableSecondsForPauses, 'seconds')
+    console.log('Total prayer points (with pauses):', prayerPointsForPaces)
+    console.log('Calculated pause duration per item:', calculatedPause, 'seconds')
+    console.log('Topics selected:', selectedTopics)
+    console.log('Total estimated session time:', totalSelectedSeconds, 'seconds')
 
     // Request wake lock to prevent screen from turning off
     try {
@@ -213,6 +284,13 @@ Amen.`,
 
   const stopPraying = () => {
     cancellationRef.current.cancelled = true
+
+    // Stop total time tracking
+    if (totalTimeIntervalRef.current) {
+      clearInterval(totalTimeIntervalRef.current)
+      totalTimeIntervalRef.current = null
+    }
+
     setIsPlaying(false)
     setCurrentIndex(0)
     setCurrentTopicIndex(0)
@@ -314,7 +392,7 @@ Amen.`,
     const isSilencing = currentTopic === 'Silence'
     const effectiveDuration = isSilencing
       ? Number.parseInt(silenceOption) * 1000
-      : Number.parseInt(pauseDuration) * 1000
+      : Number.parseInt(calculatedPauseDuration) * 1000
 
     const startTime = Date.now()
 
@@ -348,10 +426,13 @@ Amen.`,
     }
   }
 
-  // Cleanup timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       stopTimer()
+      if (totalTimeIntervalRef.current) {
+        clearInterval(totalTimeIntervalRef.current)
+      }
     }
   }, [])
 
@@ -600,7 +681,7 @@ Amen.`,
                 // Use silence duration for silence topic, otherwise use regular pause duration
                 const durationMs = currentTopic === 'Silence'
                   ? Number.parseInt(silenceOption) * 1000
-                  : Number.parseInt(pauseDuration) * 1000
+                  : Number.parseInt(calculatedPauseDuration) * 1000
 
                 setTimeout(() => {
                   clearInterval(checkInterval)
@@ -634,7 +715,7 @@ Amen.`,
         // Cleanup if needed
       }
     }
-  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, groupedPrayers, pauseDuration, voiceType])
+  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, groupedPrayers, calculatedPauseDuration, voiceType])
 
   // Cleanup wake lock on unmount
   useEffect(() => {
@@ -681,92 +762,58 @@ Amen.`,
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="everyday">Everyday Flow</SelectItem>
-                  <SelectItem value="praying-for-others">Praying for Others</SelectItem>
+                  <SelectItem value="your-prayers">Your Prayers</SelectItem>
                 </SelectContent>
               </Select>
               {selectedFlow === 'everyday' && (
                 <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-primary">1</span>
-                      </div>
-                      <span className="text-sm font-medium">Praise God</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-primary">2</span>
-                      </div>
-                      <span className="text-sm font-medium">Pray for Topics</span>
-                      <div className="ml-auto">
-                        <Select value={selectedCount} onValueChange={setSelectedCount}>
-                          <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[2, 3, 4, 5, 6, 8, 10].map((num) => (
-                              <SelectItem key={num} value={num.toString()}>
-                                {num}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">1</span>
+                        </div>
+                        <span className="text-sm font-medium">Praise God</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-primary">3</span>
-                      </div>
-                      <span className="text-sm font-medium">Silence</span>
-                      <div className="ml-auto">
-                        <Select value={silenceOption} onValueChange={setSilenceOption}>
-                          <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="skip">Off</SelectItem>
-                            <SelectItem value="15">15s</SelectItem>
-                            <SelectItem value="30">30s</SelectItem>
-                            <SelectItem value="45">45s</SelectItem>
-                            <SelectItem value="60">1m</SelectItem>
-                            <SelectItem value="90">1.5m</SelectItem>
-                            <SelectItem value="120">2m</SelectItem>
-                            <SelectItem value="180">3m</SelectItem>
-                            <SelectItem value="300">5m</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">2</span>
+                        </div>
+                        <span className="text-sm font-medium">Your Prayers ({selectedCount})</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-primary">4</span>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">3</span>
+                        </div>
+                        <span className="text-sm font-medium">Silence
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({Math.floor(Number.parseInt(silenceOption) / 60)}:{(Number.parseInt(silenceOption) % 60).toString().padStart(2, '0')})
+                          </span>
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">Lord's Prayer</span>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">4</span>
+                        </div>
+                        <span className="text-sm font-medium">Lord's Prayer</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
-              {selectedFlow === 'praying-for-others' && (
+              {selectedFlow === 'your-prayers' && (
                 <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-medium text-primary">1</span>
                     </div>
-                    <span className="text-sm font-medium">Pray for Topics</span>
-                    <div className="ml-auto">
-                      <Select value={selectedCount} onValueChange={setSelectedCount}>
-                        <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[2, 3, 4, 5, 6, 8, 10].map((num) => (
-                            <SelectItem key={num} value={num.toString()}>
-                              {num}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <span className="text-sm font-medium">Pray for Topics ({selectedCount})</span>
                   </div>
                 </div>
               )}
@@ -774,26 +821,23 @@ Amen.`,
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
-              <Label htmlFor="pause" className="text-base">
-                Pause After Each Prayer
+              <Label htmlFor="time" className="text-base">
+                Total Prayer Time
               </Label>
-              <Select value={pauseDuration} onValueChange={setPauseDuration}>
-                <SelectTrigger id="pause" className="w-full">
+              <Select value={selectedTotalTime} onValueChange={setSelectedTotalTime}>
+                <SelectTrigger id="time" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="5">5 seconds</SelectItem>
-                  <SelectItem value="10">10 seconds</SelectItem>
-                  <SelectItem value="15">15 seconds</SelectItem>
-                  <SelectItem value="20">20 seconds</SelectItem>
-                  <SelectItem value="30">30 seconds</SelectItem>
-                  <SelectItem value="60">1 minute</SelectItem>
-                  <SelectItem value="90">1.5 minutes</SelectItem>
-                  <SelectItem value="120">2 minutes</SelectItem>
-                  <SelectItem value="180">3 minutes</SelectItem>
+                  <SelectItem value="5">5 minutes</SelectItem>
+                  <SelectItem value="8">8 minutes</SelectItem>
+                  <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                  <SelectItem value="20">20 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-muted-foreground">Time to pause and reflect after each prayer point is read</p>
+              <p className="text-sm text-muted-foreground">Total time for the prayer session.</p>
             </div>
             <div className="space-y-3">
               <Label htmlFor="voice" className="text-base">
@@ -956,6 +1000,24 @@ Amen.`,
               >
                 <ChevronRight className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
               </Button>
+            </div>
+
+            {/* Time trackers */}
+            <div className="w-full mt-8 space-y-2">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {Math.floor(totalElapsedSeconds / 60)}:{(totalElapsedSeconds % 60).toString().padStart(2, '0')} / {selectedTotalTime}:00
+                </div>
+                <div className="text-sm text-muted-foreground">Total Session Time</div>
+              </div>
+              {currentlyReadingIndex !== null && (
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    {calculatedPauseDuration}s for this point
+                  </div>
+                  <div className="text-xs text-muted-foreground">Current pause duration</div>
+                </div>
+              )}
             </div>
 
             {/* Horizontal Progress Bar - Always visible during prayer session */}
