@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   const text = request.nextUrl.searchParams.get('text')
   const provider = request.nextUrl.searchParams.get('provider') || 'elevenlabs'
   const type = request.nextUrl.searchParams.get('type') // generative or long-form
-  const rate = parseFloat(request.nextUrl.searchParams.get('rate') || '0.8') // Default speed like ElevenLabs
+  const rate = parseFloat(request.nextUrl.searchParams.get('rate') || '1') // Default speed like ElevenLabs
 
   if (!text) {
     return NextResponse.json({ error: 'Text parameter required' }, { status: 400 })
