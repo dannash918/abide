@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
+import { Settings, Volume2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -27,6 +28,64 @@ export function PrayerSettingsModal({
   topicCountPreference,
   setTopicCountPreference,
 }: PrayerSettingsModalProps) {
+  const [isPlayingSample, setIsPlayingSample] = useState(false)
+
+  const playSampleVoice = async (selectedVoice: "elevenlabs" | "polly" | "screenReader") => {
+    if (isPlayingSample) return
+
+    const sampleText = "Abide in Me, and I will Abide in you."
+
+    setIsPlayingSample(true)
+
+    try {
+      if (selectedVoice === "elevenlabs") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=elevenlabs`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
+      } else if (selectedVoice === "polly") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=polly`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
+      } else {
+        // Screen reader
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          const utterance = new SpeechSynthesisUtterance(sampleText)
+          utterance.rate = 0.75
+          utterance.pitch = 1.0
+          utterance.volume = 0.9
+          window.speechSynthesis.speak(utterance)
+          await new Promise<void>((resolve) => {
+            utterance.onend = () => resolve()
+            utterance.onerror = () => resolve()
+          })
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to play voice sample:', error)
+    } finally {
+      setIsPlayingSample(false)
+    }
+  }
+
+  const handleVoiceChange = (value: "elevenlabs" | "polly" | "screenReader") => {
+    setVoiceType(value)
+    playSampleVoice(value)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
@@ -43,16 +102,27 @@ export function PrayerSettingsModal({
             <Label htmlFor="voice-modal" className="text-base">
               Voice Type
             </Label>
-            <Select value={voiceType} onValueChange={(value: "elevenlabs" | "polly" | "screenReader") => setVoiceType(value)}>
-              <SelectTrigger id="voice-modal" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="polly">Ruth</SelectItem>
-                <SelectItem value="elevenlabs">Rachel</SelectItem>
-                <SelectItem value="screenReader">Screen Reader</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={voiceType} onValueChange={handleVoiceChange}>
+                <SelectTrigger id="voice-modal" className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="polly">Ruth</SelectItem>
+                  <SelectItem value="elevenlabs">Rachel</SelectItem>
+                  <SelectItem value="screenReader">Screen Reader</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => playSampleVoice(voiceType)}
+                disabled={isPlayingSample}
+                className="shrink-0"
+              >
+                <Volume2 className={`h-4 w-4 ${isPlayingSample ? 'animate-pulse' : ''}`} />
+              </Button>
+            </div>
           </div>
           <div className="space-y-3">
             <Label htmlFor="silence-modal" className="text-base">
