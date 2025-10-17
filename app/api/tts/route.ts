@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Wrap text in SSML to control speed at 85%
-      const ssmlText = `<speak><prosody rate="10%">${text}</prosody></speak>`
+      const ssmlText = `<speak><prosody rate="85%">${text}</prosody></speak>`
 
       const command = new SynthesizeSpeechCommand({
         Text: ssmlText,
