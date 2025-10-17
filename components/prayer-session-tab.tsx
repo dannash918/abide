@@ -34,7 +34,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
-  const [silenceOption, setSilenceOption] = useState("30")
+  const [silenceOption, setSilenceOption] = useState("90")
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
@@ -685,33 +685,87 @@ Amen.`,
                 </SelectContent>
               </Select>
               {selectedFlow === 'everyday' && (
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>Praise</span>
+                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-primary">1</span>
+                      </div>
+                      <span className="text-sm font-medium">Praise God</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>Topics</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-primary">2</span>
+                      </div>
+                      <span className="text-sm font-medium">Pray for Topics</span>
+                      <div className="ml-auto">
+                        <Select value={selectedCount} onValueChange={setSelectedCount}>
+                          <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[2, 3, 4, 5, 6, 8, 10].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>Silence</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-primary">3</span>
+                      </div>
+                      <span className="text-sm font-medium">Silence</span>
+                      <div className="ml-auto">
+                        <Select value={silenceOption} onValueChange={setSilenceOption}>
+                          <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="skip">Off</SelectItem>
+                            <SelectItem value="15">15s</SelectItem>
+                            <SelectItem value="30">30s</SelectItem>
+                            <SelectItem value="45">45s</SelectItem>
+                            <SelectItem value="60">1m</SelectItem>
+                            <SelectItem value="90">1.5m</SelectItem>
+                            <SelectItem value="120">2m</SelectItem>
+                            <SelectItem value="180">3m</SelectItem>
+                            <SelectItem value="300">5m</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>Lord's Prayer</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-primary">4</span>
+                      </div>
+                      <span className="text-sm font-medium">Lord's Prayer</span>
                     </div>
                   </div>
                 </div>
               )}
               {selectedFlow === 'praying-for-others' && (
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <ChevronRight className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>Topics</span>
+                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-primary">1</span>
+                    </div>
+                    <span className="text-sm font-medium">Pray for Topics</span>
+                    <div className="ml-auto">
+                      <Select value={selectedCount} onValueChange={setSelectedCount}>
+                        <SelectTrigger className="h-7 w-20 text-xs bg-white/80 border-primary/30">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2, 3, 4, 5, 6, 8, 10].map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -719,27 +773,6 @@ Amen.`,
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-
-            <div className="space-y-3">
-              <Label htmlFor="count" className="text-base">
-                Number of Topics
-              </Label>
-              <Select value={selectedCount} onValueChange={setSelectedCount}>
-                <SelectTrigger id="count" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[2, 3, 4, 5, 6, 8, 10].map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num} topics
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                You have {prayerData.topics.length} total topics available
-              </p>
-            </div>
             <div className="space-y-3">
               <Label htmlFor="pause" className="text-base">
                 Pause After Each Prayer
@@ -761,29 +794,6 @@ Amen.`,
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">Time to pause and reflect after each prayer point is read</p>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="silence" className="text-base font-medium">
-                Moments of Silence
-              </Label>
-              <Select value={silenceOption} onValueChange={setSilenceOption}>
-                <SelectTrigger id="silence" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="skip">Skip silence</SelectItem>
-                  <SelectItem value="15">15 seconds</SelectItem>
-                  <SelectItem value="30">30 seconds</SelectItem>
-                  <SelectItem value="45">45 seconds</SelectItem>
-                  <SelectItem value="60">1 minute</SelectItem>
-                  <SelectItem value="90">1.5 minutes</SelectItem>
-                  <SelectItem value="120">2 minutes</SelectItem>
-                  <SelectItem value="180">3 minutes</SelectItem>
-                  <SelectItem value="300">5 minutes</SelectItem>
-                  
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">Include a moment of silence to reflect after your prayer topics</p>
             </div>
             <div className="space-y-3">
               <Label htmlFor="voice" className="text-base">
