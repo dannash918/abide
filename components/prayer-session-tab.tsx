@@ -31,12 +31,12 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
     const minutes = Number.parseInt(totalTimeMinutes)
     // Scale: 5min=2 topics, 8min=3 topics, 10min=4 topics, 15min=5 topics, 20min=6 topics, 30min=8 topics
-    if (minutes <= 5) return 2
-    if (minutes <= 8) return 3
-    if (minutes <= 10) return 4
-    if (minutes <= 15) return 5
-    if (minutes <= 20) return 6
-    return 8
+    if (minutes <= 5) return 3
+    if (minutes <= 8) return 4
+    if (minutes <= 10) return 5
+    if (minutes <= 15) return 7
+    if (minutes <= 20) return 10
+    return 10
   }
 
   const selectedCount = getSelectedCountFromTime(selectedTotalTime)
@@ -54,11 +54,11 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
     const minutes = Number.parseInt(totalTimeMinutes)
     // Scale: 5min=30s, 8min=45s, 10min=60s, 15min=90s, 20min=120s, 30min=180s
-    if (minutes <= 5) return "30"
-    if (minutes <= 8) return "45"
-    if (minutes <= 10) return "60"
-    if (minutes <= 15) return "90"
-    if (minutes <= 20) return "120"
+    if (minutes <= 5) return "45"
+    if (minutes <= 8) return "60"
+    if (minutes <= 10) return "90"
+    if (minutes <= 15) return "120"
+    if (minutes <= 20) return "180"
     return "180"
   }
 
@@ -110,7 +110,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       grouped[topicName].push(point)
     })
 
-    let selectedTopics: string[]
+    let selectedTopics: string[] = []
     let includePraise = false
     let includeLordsPrayer = false
     let includeSilence = false
@@ -123,6 +123,22 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     } else if (selectedFlow === 'your-prayers') {
       // Only topics, no praise, silence, or Lord's Prayer
     }
+
+    // Add begin prayer topic first (always included)
+    const beginPrayerPoints: PrayerPoint[] = [{
+      id: 'begin-prayer-1',
+      text: 'Take a few deep breaths, and get ready to pray.',
+      topicName: 'Begin Prayer',
+      verseReference: undefined
+    }, {
+      id: 'begin-prayer-2',
+      text: 'Abide in me, and I will abide in you.',
+      topicName: 'Begin Prayer',
+      verseReference: 'John 15:4'
+    }]
+
+    grouped['Begin Prayer'] = beginPrayerPoints
+    selectedTopics = ['Begin Prayer', ...selectedTopics]
 
     // Add praise if selected by flow
     if (includePraise) {
@@ -140,17 +156,17 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Add praise to grouped
       grouped['Praise'] = praisePoints
 
-      // Shuffle topics and limit by selected count
+      // Shuffle topics and limit by selected count, but keep Begin Prayer first
       const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(selectedCount, shuffledTopics.length)
-      selectedTopics = ['Praise', ...shuffledTopics.slice(0, count)]
+      selectedTopics = [...selectedTopics, 'Praise', ...shuffledTopics.slice(0, count)]
     } else {
-      // Shuffle topics without praise (for your-prayers flow)
+      // Shuffle topics without praise (for your-prayers flow), but keep Begin Prayer first
       const topicNames = Object.keys(grouped)
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(selectedCount, shuffledTopics.length)
-      selectedTopics = shuffledTopics.slice(0, count)
+      selectedTopics = [...selectedTopics, ...shuffledTopics.slice(0, count)]
     }
 
     // Add silence topic after prayer topics, before Lord's Prayer if selected by flow
@@ -232,22 +248,58 @@ Amen.`,
     setIsPaused(false)
     setIsFullscreen(true)
 
-    // Debug logs
-    const totalPrayerPoints = selectedTopics.reduce((total, topicName) => {
-      return total + (grouped[topicName]?.length || 0)
-    }, 0)
-    const totalPauseTime = prayerPointsForPaces * calculatedPause
-
+    // Debug logs - detailed breakdown
     console.log('🍃 Prayer Session Started')
     console.log('Total time selected:', selectedTotalTime, 'minutes')
-    console.log('Silence time:', silenceSeconds, 'seconds')
-    console.log('Time spent praying for topics and pauses:', totalPauseTime, 'seconds')
-    console.log('Total time spent Lord\'s Prayer topic: ~5 seconds (no pause)')
-    console.log('Available time for pauses:', availableSecondsForPauses, 'seconds')
-    console.log('Total prayer points (with pauses):', prayerPointsForPaces)
-    console.log('Calculated pause duration per item:', calculatedPause, 'seconds')
-    console.log('Topics selected:', selectedTopics)
     console.log('Total estimated session time:', totalSelectedSeconds, 'seconds')
+    console.log('')
+
+    console.log('📋 Prayer Session Breakdown:')
+    selectedTopics.forEach((topicName, index) => {
+      const points = grouped[topicName] || []
+      const topicNumber = index + 1
+      const isPraise = topicName === 'Praise'
+      const isBeginPrayer = topicName === 'Begin Prayer'
+      const isSilence = topicName === 'Silence'
+      const isLordsPrayer = topicName === 'Lord\'s Prayer'
+
+      console.log(`${topicNumber}. ${topicName}`)
+
+      points.forEach((point, pointIndex) => {
+        const pointNumber = pointIndex + 1
+        console.log(`   ${pointIndex === 0 ? '└─' : '   '} ${pointNumber}. "${point.text}"`)
+
+        // Calculate duration for this point
+        let durationInfo = ''
+        if (isLordsPrayer) {
+          durationInfo = '(~5s reading, no pause)'
+        } else if (isSilence) {
+          durationInfo = `(${silenceSeconds}s silence)`
+        } else if (isBeginPrayer || isPraise) {
+          durationInfo = `(${calculatedPause}s pause)`
+        } else {
+          // Regular prayer topics
+          const pointCount = points.length
+          const totalPauseForTopic = pointCount * calculatedPause
+          durationInfo = `(${calculatedPause}s pause)`
+        }
+
+        if (pointIndex === points.length - 1) {
+          console.log(`   └─ Duration: ${durationInfo}`)
+        }
+      })
+
+      console.log('')
+    })
+
+    console.log('📊 Session Statistics:')
+    console.log('Silence time:', silenceSeconds, 'seconds')
+    const totalPauseTime = prayerPointsForPaces * calculatedPause
+    console.log('Time spent on pauses:', totalPauseTime, 'seconds')
+    console.log('Available time for pauses:', availableSecondsForPauses, 'seconds')
+    console.log('Number of prayer points (excluding Lord\'s Prayer):', prayerPointsForPaces)
+    console.log('Calculated pause duration per point:', calculatedPause, 'seconds')
+    console.log('Topics selected:', selectedTopics.length, 'total')
 
     // Request wake lock to prevent screen from turning off
     try {
@@ -452,9 +504,11 @@ Amen.`,
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
-          // First, announce the topic (skip for silence)
+          // First, announce the topic (skip for silence, different announcement for begin prayer)
           if (currentTopic !== 'Silence') {
-            const topicAnnouncement = currentTopic === 'Praise'
+            const topicAnnouncement = currentTopic === 'Begin Prayer'
+              ? `Let's Abide`
+              : currentTopic === 'Praise'
               ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
               : currentTopic === 'Lord\'s Prayer'
               ? `Let's finish with the Lord's Prayer`
@@ -751,7 +805,6 @@ Amen.`,
         <Card className="border-primary/20 bg-card/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="text-2xl">Prayer Session</CardTitle>
-            <CardDescription>Select how many topics you'd like to pray through</CardDescription>
             <div className="space-y-3 pt-2">
               <Label htmlFor="flow" className="text-base">
                 Prayer Flow
@@ -773,7 +826,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">1</span>
                         </div>
-                        <span className="text-sm font-medium">Praise God</span>
+                        <span className="text-sm font-medium">Begin Prayer</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -781,13 +834,21 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">2</span>
                         </div>
-                        <span className="text-sm font-medium">Your Prayers ({selectedCount})</span>
+                        <span className="text-sm font-medium">Praise God</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">3</span>
+                        </div>
+                        <span className="text-sm font-medium">Your Prayers ({selectedCount})</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">4</span>
                         </div>
                         <span className="text-sm font-medium">Silence
                           <span className="ml-2 text-xs text-muted-foreground">
@@ -799,7 +860,7 @@ Amen.`,
                     <div className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">4</span>
+                          <span className="text-xs font-medium text-primary">5</span>
                         </div>
                         <span className="text-sm font-medium">Lord's Prayer</span>
                       </div>
@@ -837,7 +898,6 @@ Amen.`,
                   <SelectItem value="30">30 minutes</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-muted-foreground">Total time for the prayer session.</p>
             </div>
             <div className="space-y-3">
               <Label htmlFor="voice" className="text-base">
@@ -853,9 +913,6 @@ Amen.`,
                   <SelectItem value="screenReader">Screen Reader</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-muted-foreground">
-                Choose the voice for prayer readings. AI voices require API configuration.
-              </p>
             </div>
             <Button onClick={startPraying} disabled={prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
               <Play className="w-5 h-5" />
@@ -909,7 +966,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
@@ -1002,26 +1059,8 @@ Amen.`,
               </Button>
             </div>
 
-            {/* Time trackers */}
-            <div className="w-full mt-8 space-y-2">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">
-                  {Math.floor(totalElapsedSeconds / 60)}:{(totalElapsedSeconds % 60).toString().padStart(2, '0')} / {selectedTotalTime}:00
-                </div>
-                <div className="text-sm text-muted-foreground">Total Session Time</div>
-              </div>
-              {currentlyReadingIndex !== null && (
-                <div className="text-center">
-                  <div className="text-lg font-semibold">
-                    {calculatedPauseDuration}s for this point
-                  </div>
-                  <div className="text-xs text-muted-foreground">Current pause duration</div>
-                </div>
-              )}
-            </div>
-
             {/* Horizontal Progress Bar - Always visible during prayer session */}
-            <div className="w-full mt-4">
+            <div className="w-full mt-8">
               <Progress value={timerProgress} className="w-full" />
             </div>
           </div>
