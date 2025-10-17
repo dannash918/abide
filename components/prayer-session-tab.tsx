@@ -27,6 +27,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [selectedTotalTime, setSelectedTotalTime] = useState("10")
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
   const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "screenReader">("polly")
+  const [silencePreference, setSilencePreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // Calculate selectedCount based on total time (more time = more topics)
@@ -64,7 +65,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     return "180"
   }
 
-  const silenceOption = getSilenceTimeFromTotalTime(selectedTotalTime)
+  const silenceOption = silencePreference === "automatic"
+    ? getSilenceTimeFromTotalTime(selectedTotalTime)
+    : silencePreference
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
@@ -810,7 +813,7 @@ Amen.`,
               <CardTitle className="text-2xl">Prayer Session</CardTitle>
               <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button variant="outline" size="icon" className="h-8 w-8">
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
@@ -831,6 +834,25 @@ Amen.`,
                           <SelectItem value="polly">Ruth (AWS)</SelectItem>
                           <SelectItem value="elevenlabs">Rachel (ElevenLabs)</SelectItem>
                           <SelectItem value="screenReader">Screen Reader</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="silence-modal" className="text-base">
+                        Silence Time
+                      </Label>
+                      <Select value={silencePreference} onValueChange={setSilencePreference}>
+                        <SelectTrigger id="silence-modal" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="automatic">Automatic (based on session length)</SelectItem>
+                          <SelectItem value="30">30 seconds</SelectItem>
+                          <SelectItem value="45">45 seconds</SelectItem>
+                          <SelectItem value="60">60 seconds</SelectItem>
+                          <SelectItem value="90">90 seconds</SelectItem>
+                          <SelectItem value="120">2 minutes</SelectItem>
+                          <SelectItem value="180">3 minutes</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
