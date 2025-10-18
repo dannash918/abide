@@ -48,7 +48,7 @@ export const confessionFlows: Topic[] = [
       {
         id: 'confession-verse',
         text: 'Then I acknowledged my sin to you and did not conceal my iniquity. I said, \'I will confess my transgressions to the Lord\'',
-        topicName: 'Confession','
+        topicName: 'Confession',
         verseReference: 'Psalm 32:5'
       }
     ]
