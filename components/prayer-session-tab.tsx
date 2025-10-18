@@ -746,7 +746,9 @@ Amen.`,
             if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
 
             const point = currentPrayerPoints[i]
-            const textToSpeak = `${point.text}`
+            const textToSpeak = point.verseReference
+              ? `${point.verseReference} says: ${point.text}`
+              : `${point.text}`
 
             // Double check cancellation right before TTS starts
             if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
