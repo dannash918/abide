@@ -8,6 +8,16 @@ const POLLY_VOICES = {
   stephen: { voiceId: 'Stephen', engine: 'generative' as const },
 } as const
 
+function addLordsPrayerPauses(text: string): string {
+  // Check if this is the Lord's Prayer by looking for key phrases
+  if (text.includes('Our Father') && text.includes('hallowed be') && text.includes('Amen.')) {
+    // Replace full stops with SSML break tags followed by a space
+    // This adds 1-second pauses after full stops in the Lord's Prayer
+    return text.replace(/\./g, '.<break time=".7s"/> ')
+  }
+  return text
+}
+
 async function handlePollyTTS(text: string, provider: string, type?: string) {
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID
   const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
@@ -28,7 +38,11 @@ async function handlePollyTTS(text: string, provider: string, type?: string) {
   })
 
   const engine = provider === 'stephen' && type === 'generative' ? 'generative' : voiceConfig.engine
-  const ssmlText = `<speak><prosody rate="95%" volume="soft">${text}</prosody></speak>`
+
+  // Add pauses for Lord's Prayer
+  const processedText = addLordsPrayerPauses(text)
+
+  const ssmlText = `<speak><prosody rate="95%">${processedText}</prosody></speak>`
 
   const command = new SynthesizeSpeechCommand({
     Text: ssmlText,

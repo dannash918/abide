@@ -259,8 +259,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const lordsPrayerPoints: PrayerPoint[] = [{
         id: 'lords-prayer-1',
         text: `Our Father in heaven,
-hallowed be your name,
-your kingdom come,
+hallowed be your name.
+Your kingdom come,
 your will be done,
 on earth as in heaven.
 Give us today our daily bread.
