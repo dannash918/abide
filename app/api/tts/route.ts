@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PollyClient, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly'
 
 const POLLY_VOICES = {
-  polly: { voiceId: 'Ruth', engine: 'long-form' as const },
-  danielle: { voiceId: 'Danielle', engine: 'long-form' as const },
+  polly: { voiceId: 'Ruth', engine: 'generative' as const },
+  danielle: { voiceId: 'Danielle', engine: 'generative' as const },
   patrick: { voiceId: 'Patrick', engine: 'long-form' as const },
   stephen: { voiceId: 'Stephen', engine: 'generative' as const },
 } as const
@@ -37,18 +37,16 @@ async function handlePollyTTS(text: string, provider: string, type?: string) {
     credentials: { accessKeyId, secretAccessKey },
   })
 
-  const engine = provider === 'stephen' && type === 'generative' ? 'generative' : voiceConfig.engine
-
   // Add pauses for Lord's Prayer
   const processedText = addLordsPrayerPauses(text)
 
-  const ssmlText = `<speak><prosody rate="95%">${processedText}</prosody></speak>`
+  const ssmlText = `<speak><prosody rate="90%" volume="soft">${processedText}</prosody></speak>`
 
   const command = new SynthesizeSpeechCommand({
     Text: ssmlText,
     OutputFormat: 'mp3',
     VoiceId: voiceConfig.voiceId as VoiceId,
-    Engine: engine,
+    Engine: voiceConfig.engine,
     TextType: 'ssml',
     SpeechMarkTypes: [],
   })
