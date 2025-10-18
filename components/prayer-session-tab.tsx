@@ -209,21 +209,21 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Only topics, no praise, silence, or Lord's Prayer
     }
 
-    // Add begin prayer topic first (always included)
+    // Add Abide topic first (always included)
     const beginPrayerPoints: PrayerPoint[] = [{
       id: 'begin-prayer-1',
       text: 'Take a few deep breaths, and get ready to pray.',
-      topicName: 'Begin Prayer',
+      topicName: 'Abide',
       verseReference: undefined
     }, {
       id: 'begin-prayer-2',
       text: 'Abide in me, and I will abide in you.',
-      topicName: 'Begin Prayer',
+      topicName: 'Abide',
       verseReference: 'John 15:4'
     }]
 
-    grouped['Begin Prayer'] = beginPrayerPoints
-    selectedTopics = ['Begin Prayer', ...selectedTopics]
+    grouped['Abide'] = beginPrayerPoints
+    selectedTopics = ['Abide', ...selectedTopics]
 
     // Add praise if selected by flow
     if (includePraise) {
@@ -263,7 +263,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Add confession to grouped
       grouped['Confession'] = confessionPoints
 
-      // Shuffle topics and limit by selected count, but keep Begin Prayer first
+      // Shuffle topics and limit by selected count, but keep Abide first
       const topicNames = Object.keys(grouped).filter(name => name !== 'Praise' && name !== 'Confession')
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(selectedCount, shuffledTopics.length)
@@ -272,7 +272,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       if (selectedFlow === 'confession') {
         selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
       } else {
-        // Shuffle topics without praise (for your-prayers flow), but keep Begin Prayer first
+        // Shuffle topics without praise (for your-prayers flow), but keep Abide first
         const topicNames = Object.keys(grouped)
         const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
         const count = Math.min(selectedCount, shuffledTopics.length)
@@ -370,7 +370,7 @@ Amen.`,
       const points = grouped[topicName] || []
       const topicNumber = index + 1
       const isPraise = topicName === 'Praise'
-      const isBeginPrayer = topicName === 'Begin Prayer'
+      const isBeginPrayer = topicName === 'Abide'
       const isSilence = topicName === 'Silence'
       const isLordsPrayer = topicName === 'Lord\'s Prayer'
 
@@ -618,9 +618,9 @@ Amen.`,
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
-          // First, announce the topic (skip for silence, different announcement for begin prayer)
+          // First, announce the topic (skip for silence, different announcement for Abide)
           if (currentTopic !== 'Silence') {
-            const topicAnnouncement = currentTopic === 'Begin Prayer'
+            const topicAnnouncement = currentTopic === 'Abide'
               ? `Let's Abide`
               : currentTopic === 'Praise'
               ? `Praise`
@@ -1026,7 +1026,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">1</span>
                         </div>
-                        <span className="text-sm font-medium">Begin Prayer</span>
+                        <span className="text-sm font-medium">Abide</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1214,7 +1214,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Abide' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
