@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
+import { confessOptions } from "@/lib/confess-options"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
 import { confessionFlows } from "@/lib/confession-flow"
@@ -245,11 +246,28 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Add praise to grouped
       grouped['Praise'] = praisePoints
 
+      // Add confession topic
+      const randomConfess = confessOptions[Math.floor(Math.random() * confessOptions.length)]
+      const confessionPoints: PrayerPoint[] = [{
+        id: 'confession-intro',
+        text: 'Spend some time reflecting and confessing your sins to God',
+        topicName: 'Confession',
+        verseReference: undefined
+      }, {
+        id: 'confession-verse',
+        text: randomConfess.text,
+        topicName: 'Confession',
+        verseReference: randomConfess.verse
+      }]
+
+      // Add confession to grouped
+      grouped['Confession'] = confessionPoints
+
       // Shuffle topics and limit by selected count, but keep Begin Prayer first
-      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise')
+      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise' && name !== 'Confession')
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(selectedCount, shuffledTopics.length)
-      selectedTopics = [...selectedTopics, 'Praise', ...shuffledTopics.slice(0, count)]
+      selectedTopics = [...selectedTopics, 'Praise', 'Confession', ...shuffledTopics.slice(0, count)]
     } else {
       if (selectedFlow === 'confession') {
         selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
@@ -606,6 +624,8 @@ Amen.`,
               ? `Let's Abide`
               : currentTopic === 'Praise'
               ? `Praise`
+              : currentTopic === 'Confession'
+              ? `Confession`
               : currentTopic === 'Lord\'s Prayer'
               ? `Let's finish with the Lord's Prayer`
               : selectedFlow === 'confession'
@@ -1014,7 +1034,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">2</span>
                         </div>
-                        <span className="text-sm font-medium">Praise God</span>
+                        <span className="text-sm font-medium">Praise</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1022,13 +1042,21 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">3</span>
                         </div>
-                        <span className="text-sm font-medium">Your Prayers <span className="ml-0 text-xs text-muted-foreground">({selectedCount})</span></span>
+                        <span className="text-sm font-medium">Confession</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">4</span>
+                        </div>
+                        <span className="text-sm font-medium">Your Prayers <span className="ml-0 text-xs text-muted-foreground">({selectedCount})</span></span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">5</span>
                         </div>
                         <span className="text-sm font-medium">Silence
                           <span className="ml-2 text-xs text-muted-foreground">
@@ -1040,7 +1068,7 @@ Amen.`,
                     <div className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">5</span>
+                          <span className="text-xs font-medium text-primary">6</span>
                         </div>
                         <span className="text-sm font-medium">Lord's Prayer</span>
                       </div>
@@ -1186,7 +1214,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">

@@ -1,3 +1,5 @@
+import { Topic } from "./types";
+
 export const confessionFlows: Topic[] = [
   {
     id: 'adoration-of-god',
