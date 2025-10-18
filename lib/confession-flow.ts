@@ -11,7 +11,7 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'adoration-verse',
-        text: 'Deuteronomy 32:4 - "The Rock, his work is perfect, for all his ways are just. A faithful God who does no wrong, upright and just is he."',
+        text: 'The Rock, his work is perfect, for all his ways are just. A faithful God who does no wrong, upright and just is he.',
         topicName: 'Adoration',
         verseReference: 'Deuteronomy 32:4'
       }
@@ -29,7 +29,7 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'self-examination-verse',
-        text: 'Romans 3:23 - "for all have sinned and fall short of the glory of God,"',
+        text: 'for all have sinned and fall short of the glory of God,',
         topicName: 'Self Examination',
         verseReference: 'Romans 3:23'
       }
@@ -47,8 +47,8 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'confession-verse',
-        text: 'Psalm 32:5 - "Then I acknowledged my sin to you and did not conceal my iniquity. I said, \'I will confess my transgressions to the Lord,\' and you forgave the guilt of my sin."',
-        topicName: 'Confession',
+        text: 'Then I acknowledged my sin to you and did not conceal my iniquity. I said, \'I will confess my transgressions to the Lord\'',
+        topicName: 'Confession','
         verseReference: 'Psalm 32:5'
       }
     ]
@@ -65,7 +65,7 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'repentance-verse',
-        text: 'Acts 3:19 - "Repent, then, and turn to God, so that your sins may be wiped out, that times of refreshing may come from the Lord,"',
+        text: 'Repent, then, and turn to God, so that your sins may be wiped out, that times of refreshing may come from the Lord,',
         topicName: 'Repentance',
         verseReference: 'Acts 3:19'
       }
@@ -83,7 +83,7 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'forgiveness-verse',
-        text: '1 John 1:9 - "If we confess our sins, he is faithful and just and will forgive us our sins and purify us from all unrighteousness."',
+        text: 'If we confess our sins, he is faithful and just and will forgive us our sins and purify us from all unrighteousness.',
         topicName: 'Forgiveness',
         verseReference: '1 John 1:9'
       }
@@ -101,7 +101,7 @@ export const confessionFlows: Topic[] = [
       },
       {
         id: 'renewal-verse',
-        text: 'Ephesians 3:16 - "I pray that out of his glorious riches he may strengthen you with power through his Spirit in your inner being,"',
+        text: 'I pray that out of his glorious riches he may strengthen you with power through his Spirit in your inner being,',
         topicName: 'Renewal',
         verseReference: 'Ephesians 3:16'
       }
