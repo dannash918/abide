@@ -1,11 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PollyClient, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly'
 
+const POLLY_VOICES = {
+  polly: { voiceId: 'Ruth', engine: 'long-form' as const },
+  danielle: { voiceId: 'Danielle', engine: 'long-form' as const },
+  patrick: { voiceId: 'Patrick', engine: 'long-form' as const },
+  stephen: { voiceId: 'Stephen', engine: 'generative' as const },
+} as const
+
+async function handlePollyTTS(text: string, provider: string, type?: string) {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+  const region = process.env.AWS_REGION || 'us-east-1'
+
+  if (!accessKeyId || !secretAccessKey) {
+    throw new Error('AWS credentials not configured')
+  }
+
+  const voiceConfig = POLLY_VOICES[provider as keyof typeof POLLY_VOICES]
+  if (!voiceConfig) {
+    throw new Error(`Unsupported Polly provider: ${provider}`)
+  }
+
+  const pollyClient = new PollyClient({
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+  })
+
+  const engine = provider === 'stephen' && type === 'generative' ? 'generative' : voiceConfig.engine
+  const ssmlText = `<speak><prosody rate="95%" volume="soft">${text}</prosody></speak>`
+
+  const command = new SynthesizeSpeechCommand({
+    Text: ssmlText,
+    OutputFormat: 'mp3',
+    VoiceId: voiceConfig.voiceId as VoiceId,
+    Engine: engine,
+    TextType: 'ssml',
+    SpeechMarkTypes: [],
+  })
+
+  const response = await pollyClient.send(command)
+  if (!response.AudioStream) {
+    throw new Error('Failed to generate audio')
+  }
+
+  const audioBuffer = await response.AudioStream.transformToByteArray()
+  return Buffer.from(audioBuffer)
+}
+
 export async function GET(request: NextRequest) {
   const text = request.nextUrl.searchParams.get('text')
   const provider = request.nextUrl.searchParams.get('provider') || 'elevenlabs'
   const type = request.nextUrl.searchParams.get('type') // generative or long-form
-  const rate = parseFloat(request.nextUrl.searchParams.get('rate') || '1') // Default speed like ElevenLabs
 
   if (!text) {
     return NextResponse.json({ error: 'Text parameter required' }, { status: 400 })
@@ -22,69 +68,22 @@ export async function GET(request: NextRequest) {
 
   // Handle AWS Polly voices
   if (provider === 'polly' || provider === 'danielle' || provider === 'patrick' || provider === 'stephen') {
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
-    const region = process.env.AWS_REGION || 'us-east-1'
-
-    if (!accessKeyId || !secretAccessKey) {
-      return NextResponse.json({ error: 'AWS credentials not configured' }, { status: 500 })
-    }
-
     try {
-      const pollyClient = new PollyClient({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-      })
-
-      let voiceId: string = 'Ruth' // Default
-      let engine: 'long-form' | 'generative' = 'long-form'
-
-      if (provider === 'polly') {
-        voiceId = 'Ruth'
-      } else if (provider === 'danielle') {
-        voiceId = 'Danielle'
-      } else if (provider === 'patrick') {
-        voiceId = 'Patrick'
-      } else if (provider === 'stephen') {
-        voiceId = 'Stephen'
-        engine = type === 'generative' ? 'generative' : 'long-form'
-      }
-
-      // Wrap text in SSML to control speed at 85%
-      const ssmlText = `<speak><prosody rate="85%">${text}</prosody></speak>`
-
-      const command = new SynthesizeSpeechCommand({
-        Text: ssmlText,
-        OutputFormat: 'mp3',
-        VoiceId: voiceId as VoiceId,
-        Engine: engine,
-        TextType: 'ssml',
-        SpeechMarkTypes: [],
-      })
-
-      const response = await pollyClient.send(command)
-
-      if (!response.AudioStream) {
-        return NextResponse.json({ error: 'Failed to generate audio' }, { status: 500 })
-      }
-
-      // Convert the AudioStream to bytes
-      const audioBuffer = await response.AudioStream.transformToByteArray()
-      const buffer = Buffer.from(audioBuffer)
-
+      const buffer = await handlePollyTTS(text, provider, type || undefined)
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': 'audio/mpeg',
         },
       })
     } catch (error) {
-      console.error('Polly API error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Polly API error:', errorMessage)
       return NextResponse.json({ error: 'Failed to generate audio with Polly' }, { status: 500 })
     }
-  } else if (provider === 'elevenlabs') {
+  }
+
+  // Handle ElevenLabs TTS
+  if (provider === 'elevenlabs') {
     // Default to ElevenLabs
     const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY
     if (!elevenlabsApiKey) {
