@@ -196,18 +196,6 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     })
 
     let selectedTopics: string[] = []
-    let includePraise = false
-    let includeLordsPrayer = false
-    let includeSilence = false
-
-    // Apply flow-specific settings
-    if (selectedFlow === 'everyday') {
-      includePraise = true
-      includeSilence = true
-      includeLordsPrayer = true
-    } else if (selectedFlow === 'your-prayers' || selectedFlow === 'confession') {
-      // Only topics, no praise, silence, or Lord's Prayer
-    }
 
     // Add Abide topic first (always included)
     const beginPrayerPoints: PrayerPoint[] = [{
@@ -224,6 +212,21 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     grouped['Abide'] = beginPrayerPoints
     selectedTopics = ['Abide', ...selectedTopics]
+
+    let includePraise = false
+    let includeLordsPrayer = false
+    let includeSilence = false
+
+    // Apply flow-specific settings
+    if (selectedFlow === 'everyday') {
+      includePraise = true
+      includeSilence = true
+      includeLordsPrayer = true
+    } else if (selectedFlow === 'your-prayers') {
+      // Only topics, no praise, silence, or Lord's Prayer
+    } else if (selectedFlow === 'confession') {
+      // Confession flow includes additional topics after Abide
+    }
 
     // Add praise if selected by flow
     if (includePraise) {
@@ -1094,7 +1097,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">1</span>
                         </div>
-                        <span className="text-sm font-medium">Adoration</span>
+                        <span className="text-sm font-medium">Abide</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1102,7 +1105,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">2</span>
                         </div>
-                        <span className="text-sm font-medium">Self Examination</span>
+                        <span className="text-sm font-medium">Adoration</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1110,7 +1113,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">3</span>
                         </div>
-                        <span className="text-sm font-medium">Confession</span>
+                        <span className="text-sm font-medium">Self Examination</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1118,7 +1121,7 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">4</span>
                         </div>
-                        <span className="text-sm font-medium">Repentance</span>
+                        <span className="text-sm font-medium">Confession</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
@@ -1126,13 +1129,21 @@ Amen.`,
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">5</span>
                         </div>
-                        <span className="text-sm font-medium">Forgiveness</span>
+                        <span className="text-sm font-medium">Repentance</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs font-medium text-primary">6</span>
+                        </div>
+                        <span className="text-sm font-medium">Forgiveness</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">7</span>
                         </div>
                         <span className="text-sm font-medium">Renewal</span>
                       </div>
