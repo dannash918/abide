@@ -229,9 +229,14 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Pick random praise point
       const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
 
-      // Add praise point first
+      // Add praise points
       const praisePoints: PrayerPoint[] = [{
-        id: 'praise-1',
+        id: 'praise-intro',
+        text: 'Spend some time praising our great God and reflecting on His majesty.',
+        topicName: 'Praise',
+        verseReference: undefined
+      }, {
+        id: 'praise-verse',
         text: randomPraise.text,
         topicName: 'Praise',
         verseReference: randomPraise.verse
@@ -600,7 +605,7 @@ Amen.`,
             const topicAnnouncement = currentTopic === 'Begin Prayer'
               ? `Let's Abide`
               : currentTopic === 'Praise'
-              ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
+              ? `Praise`
               : currentTopic === 'Lord\'s Prayer'
               ? `Let's finish with the Lord's Prayer`
               : selectedFlow === 'confession'
@@ -1181,7 +1186,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
