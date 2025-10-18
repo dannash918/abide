@@ -13,8 +13,9 @@ import { usePrayerData } from "@/hooks/use-prayer-data"
 import { praiseOptions } from "@/lib/praise-verses"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
+import { confessionFlows } from "@/lib/confession-flow"
 
-type PrayerFlow = 'everyday' | 'your-prayers'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession'
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
@@ -157,6 +158,17 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   }
 
   const getAllPrayerPoints = (): PrayerPoint[] => {
+    if (selectedFlow === 'confession') {
+      const allPoints: PrayerPoint[] = []
+      confessionFlows.forEach((topic) => {
+        const pointsWithTopic = topic.prayerPoints.map((point) => ({
+          ...point,
+          topicName: topic.name,
+        }))
+        allPoints.push(...pointsWithTopic)
+      })
+      return allPoints
+    }
     const allPoints: PrayerPoint[] = []
     prayerData.topics.forEach((topic) => {
       const pointsWithTopic = topic.prayerPoints.map((point) => ({
@@ -192,7 +204,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       includePraise = true
       includeSilence = true
       includeLordsPrayer = true
-    } else if (selectedFlow === 'your-prayers') {
+    } else if (selectedFlow === 'your-prayers' || selectedFlow === 'confession') {
       // Only topics, no praise, silence, or Lord's Prayer
     }
 
@@ -234,11 +246,15 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const count = Math.min(selectedCount, shuffledTopics.length)
       selectedTopics = [...selectedTopics, 'Praise', ...shuffledTopics.slice(0, count)]
     } else {
-      // Shuffle topics without praise (for your-prayers flow), but keep Begin Prayer first
-      const topicNames = Object.keys(grouped)
-      const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-      const count = Math.min(selectedCount, shuffledTopics.length)
-      selectedTopics = [...selectedTopics, ...shuffledTopics.slice(0, count)]
+      if (selectedFlow === 'confession') {
+        selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
+      } else {
+        // Shuffle topics without praise (for your-prayers flow), but keep Begin Prayer first
+        const topicNames = Object.keys(grouped)
+        const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
+        const count = Math.min(selectedCount, shuffledTopics.length)
+        selectedTopics = [...selectedTopics, ...shuffledTopics.slice(0, count)]
+      }
     }
 
     // Add silence topic after prayer topics, before Lord's Prayer if selected by flow
@@ -587,6 +603,8 @@ Amen.`,
               ? `Let's praise God with the words of ${groupedPrayers[currentTopic][0]?.verseReference || 'Scripture'}`
               : currentTopic === 'Lord\'s Prayer'
               ? `Let's finish with the Lord's Prayer`
+              : selectedFlow === 'confession'
+              ? currentTopic
               : `Pray for ${currentTopic}`
             if (voiceType === "elevenlabs") {
               try {
@@ -970,8 +988,9 @@ Amen.`,
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="everyday">Everyday Flow</SelectItem>
+                  <SelectItem value="everyday">Everyday</SelectItem>
                   <SelectItem value="your-prayers">Your Prayers</SelectItem>
+                  <SelectItem value="confession">Confession</SelectItem>
                 </SelectContent>
               </Select>
               {selectedFlow === 'everyday' && (
@@ -1034,6 +1053,60 @@ Amen.`,
                   </div>
                 </div>
               )}
+              {selectedFlow === 'confession' && (
+                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">1</span>
+                        </div>
+                        <span className="text-sm font-medium">Adoration</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">2</span>
+                        </div>
+                        <span className="text-sm font-medium">Self Examination</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">3</span>
+                        </div>
+                        <span className="text-sm font-medium">Confession</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">4</span>
+                        </div>
+                        <span className="text-sm font-medium">Repentance</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">5</span>
+                        </div>
+                        <span className="text-sm font-medium">Forgiveness</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-primary">6</span>
+                        </div>
+                        <span className="text-sm font-medium">Renewal</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -1056,12 +1129,12 @@ Amen.`,
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={startPraying} disabled={prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
+            <Button onClick={startPraying} disabled={selectedFlow !== 'confession' && prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
               <Play className="w-5 h-5" />
               Start Praying
             </Button>
 
-            {prayerData.topics.length === 0 && (
+            {selectedFlow !== 'confession' && prayerData.topics.length === 0 && (
               <p className="text-center text-sm text-muted-foreground text-balance">
                 Add some prayer points in the "Manage Prayers" tab to get started
               </p>
@@ -1108,7 +1181,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise God' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Begin Prayer' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
