@@ -746,7 +746,7 @@ Amen.`,
             if (cancellationRef.current.cancelled || !isPlaying || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
 
             const point = currentPrayerPoints[i]
-            const textToSpeak = point.verseReference
+            const textToSpeak = point.verseReference && !point.verseReference.includes('Lord\'s Prayer')
               ? `${point.verseReference} says: ${point.text}`
               : `${point.text}`
 
