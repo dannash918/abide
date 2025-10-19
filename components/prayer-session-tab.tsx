@@ -284,7 +284,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       grouped['Confession'] = confessionPoints
 
       // Shuffle topics and limit by selected count, but keep Abide first
-      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise' && name !== 'Confession')
+      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise' && name !== 'Confession' && name !== 'Abide')
       const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
       const count = Math.min(selectedCount, shuffledTopics.length)
       selectedTopics = [...selectedTopics, 'Praise', 'Confession', ...shuffledTopics.slice(0, count)]
