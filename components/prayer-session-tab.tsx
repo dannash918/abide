@@ -15,8 +15,9 @@ import { confessOptions } from "@/lib/confess-options"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
 import { confessionFlows } from "@/lib/confession-flow"
+import { lordsPrayerFlows } from "@/lib/lords-prayer-flow"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer'
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
@@ -170,6 +171,17 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       })
       return allPoints
     }
+    if (selectedFlow === 'lords-prayer') {
+      const allPoints: PrayerPoint[] = []
+      lordsPrayerFlows.forEach((topic) => {
+        const pointsWithTopic = topic.prayerPoints.map((point) => ({
+          ...point,
+          topicName: topic.name,
+        }))
+        allPoints.push(...pointsWithTopic)
+      })
+      return allPoints
+    }
     const allPoints: PrayerPoint[] = []
     prayerData.topics.forEach((topic) => {
       const pointsWithTopic = topic.prayerPoints.map((point) => ({
@@ -197,21 +209,23 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     let selectedTopics: string[] = []
 
-    // Add Abide topic first (always included)
-    const beginPrayerPoints: PrayerPoint[] = [{
-      id: 'begin-prayer-1',
-      text: 'Take a few deep breaths, and get ready to pray.',
-      topicName: 'Abide',
-      verseReference: undefined
-    }, {
-      id: 'begin-prayer-2',
-      text: 'Abide in me, and I will abide in you.',
-      topicName: 'Abide',
-      verseReference: 'John 15:4'
-    }]
+    // Add Abide topic first (always included except for Lord's Prayer flow)
+    if (selectedFlow !== 'lords-prayer') {
+      const beginPrayerPoints: PrayerPoint[] = [{
+        id: 'begin-prayer-1',
+        text: 'Take a few deep breaths, and get ready to pray.',
+        topicName: 'Abide',
+        verseReference: undefined
+      }, {
+        id: 'begin-prayer-2',
+        text: 'Abide in me, and I will abide in you.',
+        topicName: 'Abide',
+        verseReference: 'John 15:4'
+      }]
 
-    grouped['Abide'] = beginPrayerPoints
-    selectedTopics = ['Abide', ...selectedTopics]
+      grouped['Abide'] = beginPrayerPoints
+      selectedTopics = ['Abide', ...selectedTopics]
+    }
 
     let includePraise = false
     let includeLordsPrayer = false
@@ -226,6 +240,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Only topics, no praise, silence, or Lord's Prayer
     } else if (selectedFlow === 'confession') {
       // Confession flow includes additional topics after Abide
+      selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
+    } else if (selectedFlow === 'lords-prayer') {
+      selectedTopics = [...selectedTopics, ...lordsPrayerFlows.map(topic => topic.name)]
     }
 
     // Add praise if selected by flow
@@ -272,9 +289,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       const count = Math.min(selectedCount, shuffledTopics.length)
       selectedTopics = [...selectedTopics, 'Praise', 'Confession', ...shuffledTopics.slice(0, count)]
     } else {
-      if (selectedFlow === 'confession') {
-        selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
-      } else {
+      if (selectedFlow === 'everyday' || selectedFlow === 'your-prayers') {
         // Shuffle topics without praise (for your-prayers flow), but keep Abide first
         const topicNames = Object.keys(grouped)
         const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
@@ -581,6 +596,13 @@ Amen.`,
     }
   }, [wakeLock])
 
+  // Reset total time when switching away from Lord's Prayer if 1 or 2 mins is selected
+  useEffect(() => {
+    if (selectedFlow !== 'lords-prayer' && (selectedTotalTime === '1' || selectedTotalTime === '2')) {
+      setSelectedTotalTime('5')
+    }
+  }, [selectedFlow, selectedTotalTime])
+
   // Load user settings on component mount
   useEffect(() => {
     const loadUserSettings = async () => {
@@ -626,8 +648,8 @@ Amen.`,
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
-          // First, announce the topic (skip for silence, different announcement for Abide)
-          if (currentTopic !== 'Silence') {
+          // First, announce the topic (skip for silence, different announcement for Abide, and skip entirely for Lord's Prayer flow)
+          if (currentTopic !== 'Silence' && !(selectedFlow === 'lords-prayer')) {
             const topicAnnouncement = currentTopic === 'Abide'
               ? `Let's Abide`
               : currentTopic === 'Praise'
@@ -1026,6 +1048,7 @@ Amen.`,
                   <SelectItem value="everyday">Everyday</SelectItem>
                   <SelectItem value="your-prayers">Your Prayers</SelectItem>
                   <SelectItem value="confession">Confession</SelectItem>
+                  <SelectItem value="lords-prayer">Lord's Prayer</SelectItem>
                 </SelectContent>
               </Select>
               {selectedFlow === 'everyday' && (
@@ -1158,6 +1181,22 @@ Amen.`,
                   </div>
                 </div>
               )}
+              {selectedFlow === 'lords-prayer' && (
+                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
+                  <div className="space-y-4">
+                    {lordsPrayerFlows.map((topic, index) => (
+                      <div key={topic.id} className="flex flex-col items-start gap-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-medium text-primary">{index + 1}</span>
+                          </div>
+                          <span className="text-sm font-medium">{topic.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -1170,6 +1209,12 @@ Amen.`,
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {selectedFlow === 'lords-prayer' && (
+                    <>
+                      <SelectItem value="1">1 minute</SelectItem>
+                      <SelectItem value="2">2 minutes</SelectItem>
+                    </>
+                  )}
                   <SelectItem value="5">5 minutes</SelectItem>
                   <SelectItem value="8">8 minutes</SelectItem>
                   <SelectItem value="10">10 minutes</SelectItem>
@@ -1180,7 +1225,7 @@ Amen.`,
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={startPraying} disabled={selectedFlow !== 'confession' && prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
+            <Button onClick={startPraying} disabled={selectedFlow !== 'confession' && selectedFlow !== 'lords-prayer' && prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
               <Play className="w-5 h-5" />
               Start Praying
             </Button>
@@ -1232,7 +1277,7 @@ Amen.`,
               <div className="text-center mb-8">
 
                 <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Abide' ? 'Let\'s Abide' : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
+                  {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Abide' ? 'Let\'s Abide' : selectedFlow === 'lords-prayer' ? topicNames[currentTopicIndex] : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
