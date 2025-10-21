@@ -40,7 +40,7 @@ export const lordsPrayerFlows: Topic[] = [
     prayerPoints: [
       {
         id: 'lords-prayer-4-point',
-        text: 'Forgive us our sins\nas we forgive those who sin against us.',
+        text: 'Forgive us our sins,\nas we forgive those who sin against us.',
         topicName: 'Forgiveness',
       }
     ]
@@ -51,7 +51,7 @@ export const lordsPrayerFlows: Topic[] = [
     prayerPoints: [
       {
         id: 'lords-prayer-5-point',
-        text: 'Lead us not into temptation\nbut deliver us from evil.',
+        text: 'Lead us not into temptation,\nbut deliver us from evil.',
         topicName: 'Temptation',
       }
     ]
@@ -62,7 +62,7 @@ export const lordsPrayerFlows: Topic[] = [
     prayerPoints: [
       {
         id: 'lords-prayer-6-point',
-        text: 'For the kingdom, the power,\nand the glory are yours\nnow and for ever.\nAmen.',
+        text: 'For the kingdom, the power,\nand the glory are yours,\nnow and for ever.\nAmen.',
         topicName: 'All is Yours',
       }
     ]
