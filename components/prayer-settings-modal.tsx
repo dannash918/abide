@@ -11,8 +11,8 @@ import { supabase } from "@/lib/supabase"
 type PrayerSettingsModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  voiceType: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader"
-  setVoiceType: (value: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => void
+  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader"
+  setVoiceType: (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => void
   silencePreference: string
   setSilencePreference: (value: string) => void
   topicCountPreference: string
@@ -32,7 +32,7 @@ export function PrayerSettingsModal({
   const [isPlayingSample, setIsPlayingSample] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
 
-  const playSampleVoice = async (selectedVoice: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
+  const playSampleVoice = async (selectedVoice: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
     if (isPlayingSample) return
 
     const sampleText = "Abide in Me, and I will Abide in you."
@@ -40,8 +40,8 @@ export function PrayerSettingsModal({
     setIsPlayingSample(true)
 
     try {
-      if (selectedVoice === "elevenlabs") {
-        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=elevenlabs`)
+      if (selectedVoice === "rachel") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=rachel`)
         if (response.ok) {
           const blob = await response.blob()
           const audio = new Audio(URL.createObjectURL(blob))
@@ -84,6 +84,17 @@ export function PrayerSettingsModal({
             audio.onerror = () => resolve()
           })
         }
+      } else if (selectedVoice === "maysie") {
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=maysie`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const audio = new Audio(URL.createObjectURL(blob))
+          audio.play()
+          await new Promise<void>((resolve) => {
+            audio.onended = () => resolve()
+            audio.onerror = () => resolve()
+          })
+        }
       } else if (selectedVoice === "stephen") {
         const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=stephen&type=generative`)
         if (response.ok) {
@@ -116,7 +127,7 @@ export function PrayerSettingsModal({
     }
   }
 
-  const handleVoiceChange = (value: "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
+  const handleVoiceChange = (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader") => {
     setVoiceType(value)
   }
 
@@ -146,7 +157,8 @@ export function PrayerSettingsModal({
                   <SelectItem value="danielle">Danielle</SelectItem>
                   <SelectItem value="patrick">Patrick</SelectItem>
                   <SelectItem value="stephen">Stephen</SelectItem>
-                  <SelectItem value="elevenlabs">Rachel</SelectItem>
+                  <SelectItem value="rachel">Rachel</SelectItem>
+                  <SelectItem value="maysie">Maysie</SelectItem>
                   <SelectItem value="screenReader">Screen Reader</SelectItem>
                 </SelectContent>
               </Select>

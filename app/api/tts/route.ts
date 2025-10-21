@@ -62,7 +62,7 @@ async function handlePollyTTS(text: string, provider: string, type?: string) {
 
 export async function GET(request: NextRequest) {
   const text = request.nextUrl.searchParams.get('text')
-  const provider = request.nextUrl.searchParams.get('provider') || 'elevenlabs'
+  const provider = request.nextUrl.searchParams.get('provider') || 'rachel'
   const type = request.nextUrl.searchParams.get('type') // generative or long-form
 
   if (!text) {
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Handle ElevenLabs TTS
-  if (provider === 'elevenlabs') {
+  if (provider === 'rachel' || provider === 'maysie') {
     // Default to ElevenLabs
     const elevenlabsApiKey = process.env.ELEVENLABS_API_KEY
     if (!elevenlabsApiKey) {
@@ -103,8 +103,13 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Using a default voice ID - replace with your preferred voice
-      const voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB' // Default: Adam voice
+      // Select voice based on provider
+      let voiceId: string
+      if (provider === 'maysie') {
+        voiceId = 'QPBKI85w0cdXVqMSJ6WB' // Maysie voice ID
+      } else {
+        voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB' // Default: Adam voice for Rachel
+      }
 
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=0`, {
         method: 'POST',

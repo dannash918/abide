@@ -30,7 +30,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const readingSessionRef = useRef(0)
   const [selectedTotalTime, setSelectedTotalTime] = useState("10")
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
-  const [voiceType, setVoiceType] = useState<"elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader">("polly")
+  const [voiceType, setVoiceType] = useState<"rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader">("polly")
   const [silencePreference, setSilencePreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
@@ -617,7 +617,7 @@ Amen.`,
             .single()
 
           if (data && !error) {
-            setVoiceType(data.voice_type as "elevenlabs" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader")
+            setVoiceType(data.voice_type as "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader")
             setSilencePreference(data.silence_preference)
             setTopicCountPreference(data.topic_count_preference)
           }
@@ -661,9 +661,9 @@ Amen.`,
               : selectedFlow === 'confession'
               ? currentTopic
               : `Pray for ${currentTopic}`
-            if (voiceType === "elevenlabs") {
+            if (voiceType === "rachel" || voiceType === "maysie") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=elevenlabs`)
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
                   const audio = new Audio(URL.createObjectURL(blob))
@@ -783,9 +783,9 @@ Amen.`,
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
 
-            if (voiceType === "elevenlabs") {
+            if (voiceType === "rachel" || voiceType === "maysie") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=elevenlabs`)
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
                   const audio = new Audio(URL.createObjectURL(blob))
