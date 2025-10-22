@@ -5,17 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Play, Pause, SkipForward, Volume2, VolumeX, X, Loader2, Monitor, ChevronLeft, ChevronRight, Settings } from "lucide-react"
-import type { PrayerData, PrayerPoint } from "@/lib/types"
+import type { PrayerData, PrayerPoint, Topic } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { usePrayerData } from "@/hooks/use-prayer-data"
-import { praiseOptions } from "@/lib/praise-verses"
-import { confessOptions } from "@/lib/confess-options"
+import { abidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints, getYourPrayers } from "@/lib/included-topics"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
 import { confessionFlows } from "@/lib/confession-flow"
 import { lordsPrayerFlows } from "@/lib/lords-prayer-flow"
+import { getEverydayFlow, getYourPrayersFlow } from "@/lib/everyday-flow"
 
 type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer'
 
@@ -52,14 +52,11 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const selectedCount = topicCountPreference === "automatic"
     ? getSelectedCountFromTime(selectedTotalTime)
     : Number.parseInt(topicCountPreference)
-  const [includePraise, setIncludePraise] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [selectedPoints, setSelectedPoints] = useState<PrayerPoint[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [includeLordsPrayer, setIncludeLordsPrayer] = useState(true)
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
 
   // Calculate silenceOption based on total time (longer sessions = longer silence)
@@ -140,7 +137,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     }
   }
 
-  const [groupedPrayers, setGroupedPrayers] = useState<{ [topicName: string]: PrayerPoint[] }>({})
+  const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
   const [topicNames, setTopicNames] = useState<string[]>([])
   const [currentlyReadingIndex, setCurrentlyReadingIndex] = useState<number | null>(null)
@@ -194,168 +191,54 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   }
 
   const startPraying = async () => {
-    const allPoints = getAllPrayerPoints()
-    if (allPoints.length === 0) return
+    let topics: Topic[] = []
 
-    // Group prayers by topic
-    const grouped: { [topicName: string]: PrayerPoint[] } = {}
-    allPoints.forEach(point => {
-      const topicName = point.topicName || 'General'
-      if (!grouped[topicName]) {
-        grouped[topicName] = []
-      }
-      grouped[topicName].push(point)
-    })
-
-    let selectedTopics: string[] = []
-
-    // Add Abide topic first (always included except for Lord's Prayer flow)
-    if (selectedFlow !== 'lords-prayer') {
-      const beginPrayerPoints: PrayerPoint[] = [{
-        id: 'begin-prayer-1',
-        text: 'Take a few deep breaths, and get ready to pray.',
-        topicName: 'Abide',
-        verseReference: undefined
-      }, {
-        id: 'begin-prayer-2',
-        text: 'Abide in me, and I will abide in you.',
-        topicName: 'Abide',
-        verseReference: 'John 15:4'
-      }]
-
-      grouped['Abide'] = beginPrayerPoints
-      selectedTopics = ['Abide', ...selectedTopics]
-    }
-
-    let includePraise = false
-    let includeLordsPrayer = false
-    let includeSilence = false
-
-    // Apply flow-specific settings
     if (selectedFlow === 'everyday') {
-      includePraise = true
-      includeSilence = true
-      includeLordsPrayer = true
+      // Get user prayer points for everyday flow
+      const allPoints = getAllPrayerPoints()
+      if (allPoints.length === 0) return
+
+      const grouped: { [topicName: string]: PrayerPoint[] } = {}
+      allPoints.forEach(point => {
+        const topicName = point.topicName || 'General'
+        if (!grouped[topicName]) {
+          grouped[topicName] = []
+        }
+        grouped[topicName].push(point)
+      })
+
+      topics = getEverydayFlow(selectedCount, Object.keys(grouped), grouped)
     } else if (selectedFlow === 'your-prayers') {
-      // Only topics, no praise, silence, or Lord's Prayer
+      // Get user prayer points for your-prayers flow
+      const allPoints = getAllPrayerPoints()
+      if (allPoints.length === 0) return
+
+      const grouped: { [topicName: string]: PrayerPoint[] } = {}
+      allPoints.forEach(point => {
+        const topicName = point.topicName || 'General'
+        if (!grouped[topicName]) {
+          grouped[topicName] = []
+        }
+        grouped[topicName].push(point)
+      })
+
+      topics = getYourPrayersFlow(selectedCount, Object.keys(grouped), grouped)
     } else if (selectedFlow === 'confession') {
-      // Confession flow includes additional topics after Abide
-      selectedTopics = [...selectedTopics, 'Adoration', 'Self Examination', 'Confession', 'Repentance', 'Forgiveness', 'Renewal']
+      topics = confessionFlows
     } else if (selectedFlow === 'lords-prayer') {
-      selectedTopics = [...selectedTopics, ...lordsPrayerFlows.map(topic => topic.name)]
+      topics = lordsPrayerFlows
     }
 
-    // Add praise if selected by flow
-    if (includePraise) {
-      // Pick random praise point
-      const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)]
-
-      // Add praise points
-      const praisePoints: PrayerPoint[] = [{
-        id: 'praise-intro',
-        text: 'Spend some time praising our great God and reflecting on His majesty.',
-        topicName: 'Praise',
-        verseReference: undefined
-      }, {
-        id: 'praise-verse',
-        text: randomPraise.text,
-        topicName: 'Praise',
-        verseReference: randomPraise.verse
-      }]
-
-      // Add praise to grouped
-      grouped['Praise'] = praisePoints
-
-      // Add confession topic
-      const randomConfess = confessOptions[Math.floor(Math.random() * confessOptions.length)]
-      const confessionPoints: PrayerPoint[] = [{
-        id: 'confession-intro',
-        text: 'Spend some time reflecting and confessing your sins to God',
-        topicName: 'Confession',
-        verseReference: undefined
-      }, {
-        id: 'confession-verse',
-        text: randomConfess.text,
-        topicName: 'Confession',
-        verseReference: randomConfess.verse
-      }]
-
-      // Add confession to grouped
-      grouped['Confession'] = confessionPoints
-
-      // Shuffle topics and limit by selected count, but keep Abide first
-      const topicNames = Object.keys(grouped).filter(name => name !== 'Praise' && name !== 'Confession' && name !== 'Abide')
-      const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-      const count = Math.min(selectedCount, shuffledTopics.length)
-      selectedTopics = [...selectedTopics, 'Praise', 'Confession', ...shuffledTopics.slice(0, count)]
-    } else {
-      if (selectedFlow === 'everyday' || selectedFlow === 'your-prayers') {
-        // Shuffle topics without praise (for your-prayers flow), but keep Abide first
-        const topicNames = Object.keys(grouped)
-        const shuffledTopics = topicNames.sort(() => Math.random() - 0.5)
-        const count = Math.min(selectedCount, shuffledTopics.length)
-        selectedTopics = [...selectedTopics, ...shuffledTopics.slice(0, count)]
-      }
-    }
-
-    // Add silence topic after prayer topics, before Lord's Prayer if selected by flow
-    if (includeSilence && silenceOption !== 'skip') {
-      const silencePoints: PrayerPoint[] = [{
-        id: 'silence-1',
-        text: 'Take a moment to be still and listen for God\'s voice.',
-        topicName: 'Silence',
-      },
-      {
-        id: 'silence-2',
-        text: 'Be still, and know that I am God.',
-        topicName: 'Silence',
-        verseReference: 'Psalm 46:10'
-      }]
-
-      grouped['Silence'] = silencePoints
-      selectedTopics.push('Silence')
-    }
-
-    // Add Lord's Prayer at the end if selected by flow
-    if (includeLordsPrayer) {
-      const lordsPrayerPoints: PrayerPoint[] = [{
-        id: 'lords-prayer-1',
-        text: `Our Father in heaven,
-hallowed be your name.
-Your kingdom come,
-your will be done,
-on earth as in heaven.
-Give us today our daily bread.
-Forgive us our sins
-as we forgive those who sin against us.
-Lead us not into temptation
-but deliver us from evil.
-For the kingdom, the power,
-and the glory are yours
-now and for ever.
-Amen.`,
-        topicName: 'Lord\'s Prayer',
-        verseReference: `The Lord's Prayer`
-      }]
-
-      grouped['Lord\'s Prayer'] = lordsPrayerPoints
-      selectedTopics.push('Lord\'s Prayer')
-    }
-
-    // Create final grouped prayers
-    const finalGrouped: { [topicName: string]: PrayerPoint[] } = {}
-    selectedTopics.forEach(topicName => {
-      finalGrouped[topicName] = grouped[topicName]
-    })
+    const selectedTopics = topics.map(t => t.name)
 
     // Calculate dynamic pause duration
     const totalSelectedSeconds = Number.parseInt(selectedTotalTime) * 60
     const silenceSeconds = selectedFlow === 'everyday' && silenceOption !== 'skip' ? Number.parseInt(silenceOption) : 0
 
     // Count prayer points that will have pauses (excluding Lord's Prayer and Silence)
-    const prayerPointsForPaces = selectedTopics
-      .filter(topicName => topicName !== 'Lord\'s Prayer' && topicName !== 'Silence')
-      .reduce((total, topicName) => total + (grouped[topicName]?.length || 0), 0)
+    const prayerPointsForPaces = topics
+      .filter(topic => topic.name !== 'Lord\'s Prayer' && topic.name !== 'Silence')
+      .reduce((total, topic) => total + topic.prayerPoints.length, 0)
 
     // Available time for pauses (total time minus silence time)
     const availableSecondsForPauses = totalSelectedSeconds - silenceSeconds
@@ -373,10 +256,9 @@ Amen.`,
       setTotalElapsedSeconds(prev => prev + 1)
     }, 1000)
 
-    setGroupedPrayers(finalGrouped)
+    setCurrentTopics(topics) // Store topics array
     setTopicNames(selectedTopics)
     setCurrentTopicIndex(0)
-    setSelectedPoints([]) // Clear individual points since we're using grouped view
     cancellationRef.current.cancelled = false
     setIsPlaying(true)
     setIsPaused(false)
@@ -389,17 +271,16 @@ Amen.`,
     console.log('')
 
     console.log('📋 Prayer Session Breakdown:')
-    selectedTopics.forEach((topicName, index) => {
-      const points = grouped[topicName] || []
+    topics.forEach((topic, index) => {
       const topicNumber = index + 1
-      const isPraise = topicName === 'Praise'
-      const isBeginPrayer = topicName === 'Abide'
-      const isSilence = topicName === 'Silence'
-      const isLordsPrayer = topicName === 'Lord\'s Prayer'
+      const isPraise = topic.name === 'Praise'
+      const isBeginPrayer = topic.name === 'Abide'
+      const isSilence = topic.name === 'Silence'
+      const isLordsPrayer = topic.name === 'Lord\'s Prayer'
 
-      console.log(`${topicNumber}. ${topicName}`)
+      console.log(`${topicNumber}. ${topic.name}`)
 
-      points.forEach((point, pointIndex) => {
+      topic.prayerPoints.forEach((point, pointIndex) => {
         const pointNumber = pointIndex + 1
         console.log(`   ${pointIndex === 0 ? '└─' : '   '} ${pointNumber}. "${point.text}"`)
 
@@ -413,12 +294,11 @@ Amen.`,
           durationInfo = `(${calculatedPause}s pause)`
         } else {
           // Regular prayer topics
-          const pointCount = points.length
-          const totalPauseForTopic = pointCount * calculatedPause
+          const pointCount = topic.prayerPoints.length
           durationInfo = `(${calculatedPause}s pause)`
         }
 
-        if (pointIndex === points.length - 1) {
+        if (pointIndex === topic.prayerPoints.length - 1) {
           console.log(`   └─ Duration: ${durationInfo}`)
         }
       })
@@ -451,8 +331,7 @@ Amen.`,
     setIsPlaying(false)
     setCurrentIndex(0)
     setCurrentTopicIndex(0)
-    setSelectedPoints([])
-    setGroupedPrayers({})
+    setCurrentTopics([])
     setTopicNames([])
     setCurrentlyReadingIndex(null)
     setIsPaused(false)
@@ -638,7 +517,7 @@ Amen.`,
       readingSessionRef.current++
 
       const currentTopic = topicNames[currentTopicIndex]
-      const currentPrayerPoints = groupedPrayers[currentTopic] || []
+      const currentPrayerPoints = currentTopics[currentTopicIndex]?.prayerPoints || []
 
       if (currentPrayerPoints.length > 0) {
         // Capture the topic index at the start to detect if it gets skipped
@@ -988,7 +867,7 @@ Amen.`,
         // Cleanup if needed
       }
     }
-  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, groupedPrayers, calculatedPauseDuration, voiceType])
+  }, [isPlaying, isPaused, isMuted, currentTopicIndex, topicNames, currentTopics, calculatedPauseDuration, voiceType])
 
   // Cleanup wake lock on unmount
   useEffect(() => {
@@ -1281,7 +1160,7 @@ Amen.`,
                 </h2>
                 
                 <div className="space-y-4 text-left max-w-3xl mx-auto">
-                  {groupedPrayers[topicNames[currentTopicIndex]]?.map((point, index) => (
+                  {currentTopics[currentTopicIndex]?.prayerPoints.map((point, index) => (
                     <div
                       key={point.id}
                       className={`${isFullscreen ? "text-lg md:text-xl" : "text-base"} p-4 rounded-lg border transition-all duration-300 ${
