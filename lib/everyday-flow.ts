@@ -1,8 +1,21 @@
-import { Topic, PrayerPoint } from "./types";
+import { Topic } from "./types";
 import { abidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints, getYourPrayers } from "./included-topics";
+import type { PrayerData } from "./types";
 
 // Function to get the everyday flow with user prayer count
-export function getEverydayFlow(userPrayerCount: number, availableUserTopics: string[], grouped: { [key: string]: PrayerPoint[] }): Topic[] {
+export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData): Topic[] {
+  // Group user prayer points by topic
+  const grouped: { [topicName: string]: any[] } = {}
+  prayerData.topics.forEach((topic) => {
+    const pointsWithTopic = topic.prayerPoints.map((point) => ({
+      ...point,
+      topicName: topic.name,
+    }))
+    grouped[topic.name] = pointsWithTopic
+  })
+
+  const availableUserTopics = Object.keys(grouped)
+
   return [
     {
       id: 'abide',
@@ -38,7 +51,19 @@ export function getEverydayFlow(userPrayerCount: number, availableUserTopics: st
 }
 
 // Function to get the your-prayers flow
-export function getYourPrayersFlow(userPrayerCount: number, availableUserTopics: string[], grouped: { [key: string]: PrayerPoint[] }): Topic[] {
+export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerData): Topic[] {
+  // Group user prayer points by topic
+  const grouped: { [topicName: string]: any[] } = {}
+  prayerData.topics.forEach((topic) => {
+    const pointsWithTopic = topic.prayerPoints.map((point) => ({
+      ...point,
+      topicName: topic.name,
+    }))
+    grouped[topic.name] = pointsWithTopic
+  })
+
+  const availableUserTopics = Object.keys(grouped)
+
   return [
     {
       id: 'abide',

@@ -21,6 +21,22 @@ interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
 }
 
+// Helper functions to get preview topics for UI descriptions
+const getPreviewTopicsForFlow = (flow: PrayerFlow, selectedCount: number, prayerData: any): string[] => {
+  if (flow === 'everyday') {
+    const topics = getEverydayFlow(selectedCount, prayerData)
+    return topics.map(t => t.name)
+  } else if (flow === 'your-prayers') {
+    const topics = getYourPrayersFlow(selectedCount, prayerData)
+    return topics.map(t => t.name)
+  } else if (flow === 'confession') {
+    return confessionFlows.map(t => t.name)
+  } else if (flow === 'lords-prayer') {
+    return lordsPrayerFlows.map(t => t.name)
+  }
+  return []
+}
+
 export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const { prayerData, loading, error } = usePrayerData()
   const cancellationRef = useRef({ cancelled: false })
@@ -144,16 +160,6 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [totalElapsedSeconds, setTotalElapsedSeconds] = useState(0)
   const totalTimeIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const makeSpeakableText = (text: string): string => {
-    // Clean up text for TTS: replace newlines with spaces, clean up quotes, etc.
-    return text
-      .replace(/\n\n/g, ' ')  // Double newlines to space
-      .replace(/\n/g, ' ')    // Single newlines to space
-      .replace(/"/g, '')      // Remove quotes
-      .replace(/—/g, ",")     // Replace emdash with comma
-      .trim()
-  }
-
   const getAllPrayerPoints = (): PrayerPoint[] => {
     if (selectedFlow === 'confession') {
       const allPoints: PrayerPoint[] = []
@@ -192,35 +198,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     let topics: Topic[] = []
 
     if (selectedFlow === 'everyday') {
-      // Get user prayer points for everyday flow
-      const allPoints = getAllPrayerPoints()
-      if (allPoints.length === 0) return
-
-      const grouped: { [topicName: string]: PrayerPoint[] } = {}
-      allPoints.forEach(point => {
-        const topicName = point.topicName || 'General'
-        if (!grouped[topicName]) {
-          grouped[topicName] = []
-        }
-        grouped[topicName].push(point)
-      })
-
-      topics = getEverydayFlow(selectedCount, Object.keys(grouped), grouped)
+      topics = getEverydayFlow(selectedCount, prayerData)
     } else if (selectedFlow === 'your-prayers') {
-      // Get user prayer points for your-prayers flow
-      const allPoints = getAllPrayerPoints()
-      if (allPoints.length === 0) return
-
-      const grouped: { [topicName: string]: PrayerPoint[] } = {}
-      allPoints.forEach(point => {
-        const topicName = point.topicName || 'General'
-        if (!grouped[topicName]) {
-          grouped[topicName] = []
-        }
-        grouped[topicName].push(point)
-      })
-
-      topics = getYourPrayersFlow(selectedCount, Object.keys(grouped), grouped)
+      topics = getYourPrayersFlow(selectedCount, prayerData)
     } else if (selectedFlow === 'confession') {
       topics = confessionFlows
     } else if (selectedFlow === 'lords-prayer') {
@@ -928,152 +908,27 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                   <SelectItem value="lords-prayer">Lord's Prayer</SelectItem>
                 </SelectContent>
               </Select>
-              {selectedFlow === 'everyday' && (
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
-                  <div className="space-y-4">
-                    <div className="flex flex-col items-start gap-1">
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
+                <div className="space-y-4">
+                  {getPreviewTopicsForFlow(selectedFlow, selectedCount, prayerData).map((topicName, index) => (
+                    <div key={`topic-${index}`} className="flex flex-col items-start gap-1">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">1</span>
+                          <span className="text-xs font-medium text-primary">{index + 1}</span>
                         </div>
-                        <span className="text-sm font-medium">Abide</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">2</span>
-                        </div>
-                        <span className="text-sm font-medium">Praise</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">3</span>
-                        </div>
-                        <span className="text-sm font-medium">Confession</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">4</span>
-                        </div>
-                        <span className="text-sm font-medium">Your Prayers <span className="ml-0 text-xs text-muted-foreground">({selectedCount})</span></span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">5</span>
-                        </div>
-                        <span className="text-sm font-medium">Silence
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            ({Math.floor(Number.parseInt(silenceOption) / 60)}:{(Number.parseInt(silenceOption) % 60).toString().padStart(2, '0')})
-                          </span>
+                        <span className="text-sm font-medium">
+                          {topicName}
+                          {selectedFlow === 'everyday' && topicName === 'Silence' && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              ({Math.floor(Number.parseInt(silenceOption) / 60)}:{(Number.parseInt(silenceOption) % 60).toString().padStart(2, '0')})
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">6</span>
-                        </div>
-                        <span className="text-sm font-medium">Lord's Prayer</span>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              )}
-              {selectedFlow === 'your-prayers' && (
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-primary">1</span>
-                    </div>
-                    <span className="text-sm font-medium">Pray for Topics ({selectedCount})</span>
-                  </div>
-                </div>
-              )}
-              {selectedFlow === 'confession' && (
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
-                  <div className="space-y-4">
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">1</span>
-                        </div>
-                        <span className="text-sm font-medium">Abide</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">2</span>
-                        </div>
-                        <span className="text-sm font-medium">Adoration</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">3</span>
-                        </div>
-                        <span className="text-sm font-medium">Self Examination</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">4</span>
-                        </div>
-                        <span className="text-sm font-medium">Confession</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">5</span>
-                        </div>
-                        <span className="text-sm font-medium">Repentance</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">6</span>
-                        </div>
-                        <span className="text-sm font-medium">Forgiveness</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium text-primary">7</span>
-                        </div>
-                        <span className="text-sm font-medium">Renewal</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {selectedFlow === 'lords-prayer' && (
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 border border-primary/20 shadow-sm">
-                  <div className="space-y-4">
-                    {lordsPrayerFlows.map((topic, index) => (
-                      <div key={topic.id} className="flex flex-col items-start gap-1">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-medium text-primary">{index + 1}</span>
-                          </div>
-                          <span className="text-sm font-medium">{topic.name}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
