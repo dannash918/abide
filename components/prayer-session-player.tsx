@@ -28,7 +28,6 @@ export function PrayerSessionPlayer({
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
   const readingSessionRef = useRef(0)
-  const hasStartedSessionRef = useRef(false) // Track if this component instance has started its session
 
   const [currentTopics, setCurrentTopics] = useState<Topic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
@@ -261,9 +260,7 @@ export function PrayerSessionPlayer({
   }, [wakeLock])
 
   useEffect(() => {
-    if (!isPaused && !isMuted && topicNames.length > 0 && !hasStartedSessionRef.current) {
-      // Mark that this component instance has started its session (prevents duplicate execution in strict mode)
-      hasStartedSessionRef.current = true
+    if (!isPaused && !isMuted && topicNames.length > 0 && !announcedTopicsRef.current.has(currentTopicIndex)) {
 
       // Increment session to cancel any previous reading
       readingSessionRef.current++
@@ -279,20 +276,19 @@ export function PrayerSessionPlayer({
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
-          // First, announce the topic (skip for silence, different announcement for Abide, and skip entirely for Lord's Prayer flow)
-          if (currentTopic !== 'Silence' && !(selectedFlow === 'lords-prayer')) {
+          // First, announce the topic based on header settings
+          const topic = currentTopics[currentTopicIndex]
+          let topicAnnouncement: string | null = null
+          if (topic?.customSpeechHeader === '') {
+            // Don't announce if explicitly silenced or custom header is empty string
+          } else if (topic?.customSpeechHeader) {
+            topicAnnouncement = topic.customSpeechHeader
+          } else {
+            topicAnnouncement = topic?.name || null
+          }
+          if (topicAnnouncement) {
             announcedTopicsRef.current.add(currentTopicIndex)
-            const topicAnnouncement = currentTopic === 'Abide'
-              ? `Let's Abide`
-              : currentTopic === 'Praise'
-              ? `Praise`
-              : currentTopic === 'Confession'
-              ? `Confession`
-              : currentTopic === 'Lord\'s Prayer'
-              ? `Let's finish with the Lord's Prayer`
-              : selectedFlow === 'confession'
-              ? currentTopic
-              : `Pray for ${currentTopic}`
+
             if (voiceType === "rachel" || voiceType === "maysie") {
               try {
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
@@ -699,9 +695,8 @@ export function PrayerSessionPlayer({
         {topicNames[currentTopicIndex] && (
           <div className="text-center mb-8">
             <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
-              {topicNames[currentTopicIndex] === 'Praise' ? 'Praise' : topicNames[currentTopicIndex] === 'Confession' ? 'Confession' : topicNames[currentTopicIndex] === 'Lord\'s Prayer' ? 'Lord\'s Prayer' : topicNames[currentTopicIndex] === 'Silence' ? 'Silence' : topicNames[currentTopicIndex] === 'Abide' ? 'Let\'s Abide' : selectedFlow === 'lords-prayer' ? topicNames[currentTopicIndex] : selectedFlow === 'confession' ? topicNames[currentTopicIndex] : `Pray for ${topicNames[currentTopicIndex]}`}
+              {currentTopics[currentTopicIndex]?.name}
             </h2>
-
             <div className="space-y-4 text-left max-w-3xl mx-auto">
               {currentTopics[currentTopicIndex]?.prayerPoints.map((point, index) => (
                 <div

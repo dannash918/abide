@@ -20,6 +20,7 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
     {
       id: 'abide',
       name: 'Abide',
+      customSpeechHeader: "Let's Abide",
       prayerPoints: abidePoints
     },
     {
@@ -35,6 +36,7 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
     ...getYourPrayers(availableUserTopics, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
       name: topicName,
+      customSpeechHeader: "Pray for " + topicName,
       prayerPoints: grouped[topicName] || []
     })),
     {
@@ -68,11 +70,13 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
     {
       id: 'abide',
       name: 'Abide',
+      customSpeechHeader: "Let's Abide",
       prayerPoints: abidePoints
     },
     ...getYourPrayers(availableUserTopics, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
       name: topicName,
+      customSpeechHeader: "Pray for " + topicName,
       prayerPoints: grouped[topicName] || []
     }))
   ];

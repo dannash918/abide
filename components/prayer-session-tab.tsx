@@ -96,21 +96,40 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     }
 
     // Calculate dynamic pause duration
+    console.log('🕒 Calculating pause duration:')
+    console.log(`  Total time selected: ${selectedTotalTime} minutes = ${Number.parseInt(selectedTotalTime) * 60} seconds`)
+
     const totalSelectedSeconds = Number.parseInt(selectedTotalTime) * 60
     const silenceSeconds = selectedFlow === 'everyday' && silenceOption !== 'skip' ? Number.parseInt(silenceOption) : 0
+
+    console.log(`  Silence time per silence topic: ${silenceSeconds} seconds`)
 
     // Count prayer points that will have pauses (excluding Lord's Prayer and Silence)
     const prayerPointsForPaces = topics
       .filter(topic => topic.name !== 'Lord\'s Prayer' && topic.name !== 'Silence')
       .reduce((total, topic) => total + topic.prayerPoints.length, 0)
 
+    console.log(`  Prayer points that will have pauses (excluding Lord's Prayer and Silence): ${prayerPointsForPaces}`)
+    console.log(`    Breakdown:`)
+    topics.forEach((topic, index) => {
+      if (topic.name !== 'Lord\'s Prayer' && topic.name !== 'Silence') {
+        console.log(`      ${topic.name}: ${topic.prayerPoints.length} prayer points`)
+      } else {
+        console.log(`      ${topic.name}: ${topic.prayerPoints.length} prayer points (excluded from pause calculation)`)
+      }
+    })
+
     // Available time for pauses (total time minus silence time)
     const availableSecondsForPauses = totalSelectedSeconds - silenceSeconds
+
+    console.log(`  Available time for pauses (total time - silence time): ${availableSecondsForPauses} seconds`)
 
     // Calculate pause duration per prayer point (minimum 3 seconds)
     const calculatedPause = prayerPointsForPaces > 0
       ? Math.max(3, Math.floor(availableSecondsForPauses / prayerPointsForPaces))
       : 30 // fallback
+
+    console.log(`  Calculated pause duration per prayer point: ${calculatedPause} seconds (min 3s, fallback 30s)`)
 
     setCalculatedPauseDuration(calculatedPause.toString())
     setCurrentTopics(topics)

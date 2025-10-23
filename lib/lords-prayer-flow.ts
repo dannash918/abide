@@ -4,6 +4,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-1',
     name: 'Our Father',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-1-point',
@@ -15,6 +16,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-2',
     name: 'Your Kingdom Come',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-2-point',
@@ -26,6 +28,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-3',
     name: 'Our Daily Bread',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-3-point',
@@ -37,6 +40,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-4',
     name: 'Forgiveness',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-4-point',
@@ -48,6 +52,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-5',
     name: 'Temptation',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-5-point',
@@ -59,6 +64,7 @@ export const lordsPrayerFlows: Topic[] = [
   {
     id: 'lords-prayer-6',
     name: 'All is Yours',
+    customSpeechHeader: "",
     prayerPoints: [
       {
         id: 'lords-prayer-6-point',
