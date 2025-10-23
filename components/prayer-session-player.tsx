@@ -28,6 +28,7 @@ export function PrayerSessionPlayer({
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
   const readingSessionRef = useRef(0)
+  const hasStartedSessionRef = useRef(false) // Track if this component instance has started its session
 
   const [currentTopics, setCurrentTopics] = useState<Topic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
@@ -40,6 +41,7 @@ export function PrayerSessionPlayer({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [totalElapsedSeconds, setTotalElapsedSeconds] = useState(0)
   const totalTimeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const announcedTopicsRef = useRef<Set<number>>(new Set())
 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
 
@@ -125,6 +127,7 @@ export function PrayerSessionPlayer({
     setIsPaused(false)
     setTopicNames([])
     setCurrentlyReadingIndex(null)
+    announcedTopicsRef.current.clear() // Clear announced topics for next session
 
     // Cancel any ongoing speech synthesis
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -258,7 +261,10 @@ export function PrayerSessionPlayer({
   }, [wakeLock])
 
   useEffect(() => {
-    if (!isPaused && !isMuted && topicNames.length > 0) {
+    if (!isPaused && !isMuted && topicNames.length > 0 && !hasStartedSessionRef.current) {
+      // Mark that this component instance has started its session (prevents duplicate execution in strict mode)
+      hasStartedSessionRef.current = true
+
       // Increment session to cancel any previous reading
       readingSessionRef.current++
 
@@ -275,6 +281,7 @@ export function PrayerSessionPlayer({
 
           // First, announce the topic (skip for silence, different announcement for Abide, and skip entirely for Lord's Prayer flow)
           if (currentTopic !== 'Silence' && !(selectedFlow === 'lords-prayer')) {
+            announcedTopicsRef.current.add(currentTopicIndex)
             const topicAnnouncement = currentTopic === 'Abide'
               ? `Let's Abide`
               : currentTopic === 'Praise'
@@ -377,7 +384,7 @@ export function PrayerSessionPlayer({
             }
           }
 
-          // Pause after topic announcement
+          // Start 2-second pause AFTER topic announcement finishes
           await new Promise<void>((resolve) => {
             const checkInterval = setInterval(() => {
               if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
@@ -390,7 +397,7 @@ export function PrayerSessionPlayer({
             setTimeout(() => {
               clearInterval(checkInterval)
               resolve()
-            }, 500)
+            }, 2000) // 2-second pause starting when topic announcement finishes
           })
 
           let readingCompleted = false
