@@ -182,7 +182,10 @@ export function PrayerSessionPlayer({
     // Stop timer when navigating
     stopTimer()
 
+    // Remove the current topic and the upcoming previous topic from announced topics
     if (currentTopicIndex > 0) {
+      announcedTopicsRef.current.delete(currentTopicIndex)
+      announcedTopicsRef.current.delete(currentTopicIndex - 1)
       setCurrentTopicIndex(currentTopicIndex - 1)
     }
   }
