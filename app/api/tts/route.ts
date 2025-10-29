@@ -105,8 +105,10 @@ export async function GET(request: NextRequest) {
     try {
       // Select voice based on provider
       let voiceId: string
+      let modelId : string = "eleven_multilingual_v2"
       if (provider === 'maysie') {
         voiceId = 'QPBKI85w0cdXVqMSJ6WB' // Maysie voice ID
+        modelId = "eleven_multilingual_v2"
       } else {
         voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB' // Default: Adam voice for Rachel
       }
@@ -118,13 +120,13 @@ export async function GET(request: NextRequest) {
           'xi-api-key': elevenlabsApiKey,
         },
         body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
+          text: processedText,
+          model_id: modelId,
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-            // style: 0.5,
-            use_speaker_boost: true,
+            stability: 0.8,
+            similarity_boost: 0.6,
+            style: 0.0,
+            use_speaker_boost: false,
             speed: 0.8,
           }
         })
