@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
           'xi-api-key': elevenlabsApiKey,
         },
         body: JSON.stringify({
-          text: processedText,
+          text: text,
           model_id: modelId,
           voice_settings: {
             stability: 0.8,
