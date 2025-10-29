@@ -28,6 +28,71 @@ export function PrayerSessionPlayer({
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
   const readingSessionRef = useRef(0)
+  const activeAudioRef = useRef<HTMLAudioElement[]>([])
+  const activeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const activeIntervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
+
+  const addTimeout = (id: ReturnType<typeof setTimeout>) => {
+    activeTimeoutsRef.current.push(id)
+  }
+  const removeTimeout = (id: ReturnType<typeof setTimeout> | null) => {
+    if (!id) return
+    const idx = activeTimeoutsRef.current.indexOf(id)
+    if (idx !== -1) activeTimeoutsRef.current.splice(idx, 1)
+  }
+  const addInterval = (id: ReturnType<typeof setInterval>) => {
+    activeIntervalsRef.current.push(id)
+  }
+  const removeInterval = (id: ReturnType<typeof setInterval> | null) => {
+    if (!id) return
+    const idx = activeIntervalsRef.current.indexOf(id)
+    if (idx !== -1) activeIntervalsRef.current.splice(idx, 1)
+  }
+
+  const resetAllTimers = () => {
+    // stop the visual progress timer
+    stopTimer()
+    setTimerProgress(0)
+
+    // clear any registered timeouts
+    activeTimeoutsRef.current.forEach(t => {
+      try { clearTimeout(t as any) } catch (e) { /* ignore */ }
+    })
+    activeTimeoutsRef.current = []
+
+    // clear any registered intervals
+    activeIntervalsRef.current.forEach(i => {
+      try { clearInterval(i as any) } catch (e) { /* ignore */ }
+    })
+    activeIntervalsRef.current = []
+  }
+
+  const playBlobAudio = (blob: Blob): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      // track active audio so we can pause/stop it even if it's not in DOM
+      activeAudioRef.current.push(audio)
+
+      const cleanup = () => {
+        // remove from active list
+        const idx = activeAudioRef.current.indexOf(audio)
+        if (idx !== -1) activeAudioRef.current.splice(idx, 1)
+        try { URL.revokeObjectURL(url) } catch (e) { /* ignore */ }
+        // clear visual indicator
+        try { setCurrentlyReadingIndex(null) } catch (e) { /* ignore */ }
+      }
+
+      audio.onended = () => { cleanup(); resolve() }
+      audio.onerror = () => { cleanup(); resolve() }
+      audio.onpause = () => { cleanup(); resolve() }
+
+      audio.play().catch(() => {
+        cleanup()
+        resolve()
+      })
+    })
+  }
 
   const [currentTopics, setCurrentTopics] = useState<Topic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
@@ -134,10 +199,18 @@ export function PrayerSessionPlayer({
     }
 
     // Cancel any ongoing audio playback
-    document.querySelectorAll('audio').forEach(audio => {
-      audio.pause()
-      audio.currentTime = 0
+    activeAudioRef.current.forEach(audio => {
+      try {
+        audio.pause()
+        audio.currentTime = 0
+      } catch (e) {
+        // ignore
+      }
     })
+    activeAudioRef.current = []
+
+    // Reset any timers used for pauses/progress
+    resetAllTimers()
 
     // Release wake lock
     releaseWakeLock()
@@ -152,13 +225,18 @@ export function PrayerSessionPlayer({
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
-    document.querySelectorAll('audio').forEach(audio => {
-      audio.pause()
-      audio.currentTime = 0
+    activeAudioRef.current.forEach(audio => {
+      try {
+        audio.pause()
+        audio.currentTime = 0
+      } catch (e) {
+        // ignore
+      }
     })
+    activeAudioRef.current = []
 
-    // Stop timer when navigating
-    stopTimer()
+  // Reset timers when navigating
+  resetAllTimers()
 
     if (currentTopicIndex < topicNames.length - 1) {
       setCurrentTopicIndex(currentTopicIndex + 1)
@@ -174,13 +252,18 @@ export function PrayerSessionPlayer({
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
-    document.querySelectorAll('audio').forEach(audio => {
-      audio.pause()
-      audio.currentTime = 0
+    activeAudioRef.current.forEach(audio => {
+      try {
+        audio.pause()
+        audio.currentTime = 0
+      } catch (e) {
+        // ignore
+      }
     })
+    activeAudioRef.current = []
 
-    // Stop timer when navigating
-    stopTimer()
+  // Reset timers when navigating
+  resetAllTimers()
 
     // Remove the current topic and the upcoming previous topic from announced topics
     if (currentTopicIndex > 0) {
@@ -198,6 +281,48 @@ export function PrayerSessionPlayer({
     if (pauseRef.current.paused && typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
+
+    // Pause all current audio elements immediately when pausing
+    if (pauseRef.current.paused) {
+      // reset timers and pause audio
+      resetAllTimers()
+      activeAudioRef.current.forEach(audio => {
+        try {
+          audio.pause()
+        } catch (e) {
+          // ignore
+        }
+      })
+    } else {
+      // Resuming: restart the current topic/session from the top of the screen.
+      // Cancel any partial playback and speech so we start fresh.
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
+
+      // Stop and cleanup any tracked audio so we don't resume mid-clip
+      activeAudioRef.current.forEach(audio => {
+        try {
+          audio.pause()
+          audio.currentTime = 0
+        } catch (e) {
+          // ignore
+        }
+      })
+      activeAudioRef.current = []
+
+      // Clear reading indicator
+      setCurrentlyReadingIndex(null)
+
+      // Remove announcement flag so the effect will re-announce the topic
+      announcedTopicsRef.current.delete(currentTopicIndex)
+
+      // Bump the reading session id to cancel any dangling async reads
+      readingSessionRef.current++
+
+      // Reset timers so the pause/resume shows from the beginning
+      resetAllTimers()
+    }
   }
 
   const toggleMute = () => {
@@ -207,7 +332,7 @@ export function PrayerSessionPlayer({
   // Timer functions to control the circular progress ring
   const startTimer = () => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current)
+      try { clearTimeout(timerRef.current as any) } catch (e) { /* ignore */ }
     }
 
     // Determine the duration based on the current topic
@@ -228,23 +353,29 @@ export function PrayerSessionPlayer({
 
       if (elapsed < effectiveDuration) {
         timerRef.current = setTimeout(updateProgress, 50)
+        if (timerRef.current) addTimeout(timerRef.current)
       }
     }
 
     // Start the timer
     timerRef.current = setTimeout(updateProgress, 50)
+    if (timerRef.current) addTimeout(timerRef.current)
   }
 
   const stopTimer = () => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current)
+      try { clearTimeout(timerRef.current as any) } catch (e) { /* ignore */ }
+      removeTimeout(timerRef.current)
+      timerRef.current = null
       setTimerProgress(0)
     }
   }
 
   const completeTimer = () => {
     if (timerRef.current) {
-      clearTimeout(timerRef.current)
+      try { clearTimeout(timerRef.current as any) } catch (e) { /* ignore */ }
+      removeTimeout(timerRef.current)
+      timerRef.current = null
       setTimerProgress(100)
     }
   }
@@ -297,12 +428,7 @@ export function PrayerSessionPlayer({
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => resolve()
-                    audio.onerror = () => resolve()
-                  })
+                  await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -311,11 +437,15 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                  window.speechSynthesis.speak(topicUtterance)
-                  await new Promise<void>((resolve) => {
-                    topicUtterance.onend = () => resolve()
-                    topicUtterance.onerror = () => resolve()
-                  })
+                    // Calmer, softer, slower fallback
+                    topicUtterance.rate = 0.65
+                    topicUtterance.pitch = 0.9
+                    topicUtterance.volume = 0.8
+                    window.speechSynthesis.speak(topicUtterance)
+                    await new Promise<void>((resolve) => {
+                      topicUtterance.onend = () => resolve()
+                      topicUtterance.onerror = () => resolve()
+                    })
                 }
               }
             } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick") {
@@ -323,12 +453,7 @@ export function PrayerSessionPlayer({
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => resolve()
-                    audio.onerror = () => resolve()
-                  })
+                  await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -337,6 +462,9 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                  topicUtterance.rate = 0.65
+                  topicUtterance.pitch = 0.9
+                  topicUtterance.volume = 0.8
                   window.speechSynthesis.speak(topicUtterance)
                   await new Promise<void>((resolve) => {
                     topicUtterance.onend = () => resolve()
@@ -348,13 +476,8 @@ export function PrayerSessionPlayer({
               try {
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=stephen&type=generative`)
                 if (response.ok) {
-                  const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => resolve()
-                    audio.onerror = () => resolve()
-                  })
+                    const blob = await response.blob()
+                    await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -363,6 +486,9 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                  topicUtterance.rate = 0.65
+                  topicUtterance.pitch = 0.9
+                  topicUtterance.volume = 0.8
                   window.speechSynthesis.speak(topicUtterance)
                   await new Promise<void>((resolve) => {
                     topicUtterance.onend = () => resolve()
@@ -374,6 +500,9 @@ export function PrayerSessionPlayer({
               // Screen reader
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                topicUtterance.rate = 0.65
+                topicUtterance.pitch = 0.9
+                topicUtterance.volume = 0.8
                 window.speechSynthesis.speak(topicUtterance)
                 await new Promise<void>((resolve) => {
                   topicUtterance.onend = () => resolve()
@@ -387,16 +516,21 @@ export function PrayerSessionPlayer({
           await new Promise<void>((resolve) => {
             const checkInterval = setInterval(() => {
               if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
-                clearInterval(checkInterval)
+                try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
+                removeInterval(checkInterval)
                 resolve()
                 return
               }
             }, 100)
+            addInterval(checkInterval)
 
-            setTimeout(() => {
-              clearInterval(checkInterval)
+            const t = setTimeout(() => {
+              try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
+              removeInterval(checkInterval)
+              removeTimeout(t)
               resolve()
             }, 2000) // 2-second pause starting when topic announcement finishes
+            addTimeout(t)
           })
 
           let readingCompleted = false
@@ -419,18 +553,7 @@ export function PrayerSessionPlayer({
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                    audio.onerror = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                  })
+                  await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -439,9 +562,10 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak)
-                  utterance.rate = 0.75
-                  utterance.pitch = 1.0
-                  utterance.volume = 0.9
+                  // Calmer, softer, slower fallback
+                  utterance.rate = 0.65
+                  utterance.pitch = 0.9
+                  utterance.volume = 0.8
                   window.speechSynthesis.speak(utterance)
                   await new Promise<void>((resolve) => {
                     utterance.onend = () => {
@@ -462,18 +586,7 @@ export function PrayerSessionPlayer({
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=${voiceType}`)
                 if (response.ok) {
                   const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                    audio.onerror = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                  })
+                  await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -482,9 +595,9 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak)
-                  utterance.rate = 0.75
-                  utterance.pitch = 1.0
-                  utterance.volume = 0.9
+                  utterance.rate = 0.65
+                  utterance.pitch = 0.9
+                  utterance.volume = 0.8
                   window.speechSynthesis.speak(utterance)
                   await new Promise<void>((resolve) => {
                     utterance.onend = () => {
@@ -504,19 +617,8 @@ export function PrayerSessionPlayer({
               try {
                 const response = await fetch(`/api/tts?text=${encodeURIComponent(textToSpeak)}&provider=stephen&type=generative`)
                 if (response.ok) {
-                  const blob = await response.blob()
-                  const audio = new Audio(URL.createObjectURL(blob))
-                  audio.play()
-                  await new Promise<void>((resolve) => {
-                    audio.onended = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                    audio.onerror = () => {
-                      setCurrentlyReadingIndex(null)
-                      resolve()
-                    }
-                  })
+                    const blob = await response.blob()
+                    await playBlobAudio(blob)
                 } else {
                   throw new Error('API failed')
                 }
@@ -525,9 +627,9 @@ export function PrayerSessionPlayer({
                 // Fallback to browser speech synthesis
                 if (typeof window !== "undefined" && window.speechSynthesis) {
                   const utterance = new SpeechSynthesisUtterance(textToSpeak)
-                  utterance.rate = 0.75
-                  utterance.pitch = 1.0
-                  utterance.volume = 0.9
+                  utterance.rate = 0.65
+                  utterance.pitch = 0.9
+                  utterance.volume = 0.8
                   window.speechSynthesis.speak(utterance)
                   await new Promise<void>((resolve) => {
                     utterance.onend = () => {
@@ -547,9 +649,9 @@ export function PrayerSessionPlayer({
               // Screen reader
               if (typeof window !== "undefined" && window.speechSynthesis) {
                 const utterance = new SpeechSynthesisUtterance(textToSpeak)
-                utterance.rate = 0.75
-                utterance.pitch = 1.0
-                utterance.volume = 0.9
+                utterance.rate = 0.65
+                utterance.pitch = 0.9
+                utterance.volume = 0.8
                 window.speechSynthesis.speak(utterance)
                 await new Promise<void>((resolve) => {
                   utterance.onend = () => {
@@ -575,23 +677,28 @@ export function PrayerSessionPlayer({
 
                 const checkInterval = setInterval(() => {
                   if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
-                    clearInterval(checkInterval)
+                    try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
+                    removeInterval(checkInterval)
                     stopTimer() // Stop timer if pause is interrupted
                     resolve()
                     return
                   }
                 }, 100)
+                addInterval(checkInterval)
 
                 // Use silence duration for silence topic, otherwise use regular pause duration
                 const durationMs = currentTopic === 'Silence'
                   ? Number.parseInt(silenceOption) * 1000
                   : Number.parseInt(calculatedPauseDuration) * 1000
 
-                setTimeout(() => {
-                  clearInterval(checkInterval)
+                const t = setTimeout(() => {
+                  try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
+                  removeInterval(checkInterval)
+                  removeTimeout(t)
                   completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
                   resolve()
                 }, durationMs)
+                addTimeout(t)
               })
             }
 
@@ -604,11 +711,13 @@ export function PrayerSessionPlayer({
 
           // Only advance to next topic if reading completed naturally
           if (readingCompleted) {
-            setTimeout(() => {
+            const tNext = setTimeout(() => {
+              removeTimeout(tNext)
               if (!pauseRef.current.paused && !isMuted) {
                 nextTopic()
               }
             }, 1000) // 1 second pause before next topic
+            addTimeout(tNext)
           }
         }
 
@@ -619,7 +728,7 @@ export function PrayerSessionPlayer({
         // Cleanup if needed
       }
     }
-  }, [isMuted, currentTopicIndex, topicNames, currentTopics, calculatedPauseDuration, voiceType, selectedFlow])
+  }, [isPaused, isMuted, currentTopicIndex, topicNames, currentTopics, calculatedPauseDuration, voiceType, selectedFlow])
 
   // Cleanup wake lock on unmount
   useEffect(() => {

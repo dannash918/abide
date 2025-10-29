@@ -122,12 +122,13 @@ export async function GET(request: NextRequest) {
         body: JSON.stringify({
           text: text,
           model_id: modelId,
+          // Tweak voice settings to favour a calm, soft, slower delivery
           voice_settings: {
-            stability: 0.8,
-            similarity_boost: 0.6,
-            style: 0.0,
+            stability: 0.95,
+            similarity_boost: 0.4,
+            style: 0.2,
             use_speaker_boost: false,
-            speed: 0.8,
+            speed: 0.75,
           }
         })
       })

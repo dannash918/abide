@@ -110,9 +110,10 @@ export function PrayerSettingsModal({
         // Screen reader
         if (typeof window !== "undefined" && window.speechSynthesis) {
           const utterance = new SpeechSynthesisUtterance(sampleText)
-          utterance.rate = 0.75
-          utterance.pitch = 1.0
-          utterance.volume = 0.9
+          // Calmer sample voice
+          utterance.rate = 0.65
+          utterance.pitch = 0.9
+          utterance.volume = 0.8
           window.speechSynthesis.speak(utterance)
           await new Promise<void>((resolve) => {
             utterance.onend = () => resolve()
