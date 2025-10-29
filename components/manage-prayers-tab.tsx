@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Trash2, Loader2 } from "lucide-react"
+import { Plus, Trash2, Loader2, Edit } from "lucide-react"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
@@ -24,8 +24,12 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     deleteTopic,
     createPrayerPoint,
     deletePrayerPoint,
-    createTopicWithPrayerPoint
+    createTopicWithPrayerPoint,
+    updatePrayerPoint
   } = usePrayerData()
+
+  const [editingPoint, setEditingPoint] = useState<{ topicId: string; pointId: string } | null>(null)
+  const [editingText, setEditingText] = useState("")
 
   const [newPrayerPoint, setNewPrayerPoint] = useState("")
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
@@ -229,23 +233,89 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                     {topic.prayerPoints.map((point, index) => (
                       <div
                         key={point.id}
-                        className="flex items-start gap-3 p-3 bg-muted/30 rounded-md group"
+                        className="flex items-start gap-3 p-3 bg-muted/30 rounded-md"
                       >
                         <span className="text-sm font-medium text-primary mt-0.5">{index + 1}.</span>
-                        <p className="flex-1 text-sm leading-relaxed">{point.text}</p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePrayerPoint(topic.id, point.id)}
-                          disabled={isSubmitting}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          {isSubmitting ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3" />
-                          )}
-                        </Button>
+
+                        {/* If this point is being edited, show textarea + actions */}
+                        {editingPoint && editingPoint.pointId === point.id && editingPoint.topicId === topic.id ? (
+                          <div className="flex-1 space-y-2">
+                            <Textarea
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              className="min-h-[72px]"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={async () => {
+                                  if (!editingText.trim()) return
+                                  setIsSubmitting(true)
+                                  const success = await updatePrayerPoint(point.id, editingText.trim())
+                                  setIsSubmitting(false)
+                                  if (success) {
+                                    setEditingPoint(null)
+                                    setEditingText("")
+                                  } else {
+                                    console.error('Failed to update prayer point')
+                                  }
+                                }}
+                                disabled={isSubmitting}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingPoint(null)
+                                  setEditingText("")
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async () => {
+                                  setIsSubmitting(true)
+                                  const success = await deletePrayerPoint(topic.id, point.id)
+                                  setIsSubmitting(false)
+                                  if (success) {
+                                    setEditingPoint(null)
+                                    setEditingText("")
+                                  } else {
+                                    console.error('Failed to delete prayer point')
+                                  }
+                                }}
+                                aria-label={`Delete prayer point ${index + 1}`}
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                {isSubmitting ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="flex-1 text-sm leading-relaxed">{point.text}</p>
+                            <div className="flex gap-2 ml-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingPoint({ topicId: topic.id, pointId: point.id })
+                                  setEditingText(point.text)
+                                }}
+                                aria-label={`Edit prayer point ${index + 1}`}
+                                className="h-8 w-8"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>

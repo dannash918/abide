@@ -109,6 +109,25 @@ export function usePrayerData() {
     }
   }, [user, loadPrayerData])
 
+  // Update a prayer point
+  const updatePrayerPoint = useCallback(async (
+    pointId: string,
+    text: string
+  ): Promise<boolean> => {
+    if (!user) return false
+
+    try {
+      const success = await DatabaseService.updatePrayerPoint(pointId, text, user.id)
+      if (success) {
+        await loadPrayerData()
+      }
+      return success
+    } catch (err) {
+      console.error('Error updating prayer point:', err)
+      return false
+    }
+  }, [user, loadPrayerData])
+
   // Create a topic with prayer point (for the combined form)
   const createTopicWithPrayerPoint = useCallback(async (
     topicName: string,
@@ -142,6 +161,7 @@ export function usePrayerData() {
     createPrayerPoint,
     deletePrayerPoint,
     createTopicWithPrayerPoint,
+    updatePrayerPoint,
     refreshData: loadPrayerData
   }
 }
