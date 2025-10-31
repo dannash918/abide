@@ -103,7 +103,6 @@ export function PrayerSessionPlayer({
   const [isFullscreen] = useState(true)
   const [timerProgress, setTimerProgress] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const [totalElapsedSeconds, setTotalElapsedSeconds] = useState(0)
   const totalTimeIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const announcedTopicsRef = useRef<Set<number>>(new Set())
 
@@ -741,12 +740,6 @@ export function PrayerSessionPlayer({
 
   // Start the prayer session when component mounts
   useEffect(() => {
-    // Start total time tracking
-    setTotalElapsedSeconds(0)
-    totalTimeIntervalRef.current = setInterval(() => {
-      setTotalElapsedSeconds(prev => prev + 1)
-    }, 1000)
-
     setCurrentTopics(topics)
     setTopicNames(topics.map(t => t.name))
     setCurrentTopicIndex(0)
@@ -791,18 +784,6 @@ export function PrayerSessionPlayer({
         </button>
       )}
 
-       <div className={`${isFullscreen ? "mb-8" : "mb-4"} text-center`}>
-         <span className="text-sm font-medium text-muted-foreground">
-           Topic {currentTopicIndex + 1} of {topicNames.length}
-         </span>
-         {wakeLock && (
-           <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">
-             <Monitor className="w-3 h-3" />
-             <span>Screen will stay on during prayer</span>
-           </div>
-         )}
-       </div>
-
       <div className={`${isFullscreen ? "max-w-4xl w-full" : ""}`}>
         {topicNames[currentTopicIndex] && (
           <div className="text-center mb-8">
@@ -846,62 +827,51 @@ export function PrayerSessionPlayer({
         )}
       </div>
 
-      <div className={`${isFullscreen ? "mt-16" : "mt-8"} flex flex-col items-center gap-4`}>
-        <div className={`${isFullscreen ? "flex items-center justify-center gap-4" : "flex items-center justify-center gap-4"}`}>
-          {/* Previous Topic Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={previousTopic}
-            disabled={currentTopicIndex === 0}
-            className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-          >
-            <ChevronLeft className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-          </Button>
+      {/* Floating controls box (stays on top, bottom-centered) */}
+      <div className="fixed left-1/2 bottom-6 transform -translate-x-1/2 w-[min(680px,calc(100%-32px))] bg-background/90 dark:bg-surface/95 rounded-xl shadow-xl p-4 z-50">
+        <div className="flex flex-col items-center">
+          <div className="w-full mb-2">
+            <div className="text-center text-sm text-muted-foreground">Prayer {currentTopicIndex + 1} of {topicNames.length}</div>
+            <div className="mt-2">
+              <Progress value={timerProgress} className="w-full h-2 rounded-full" />
+            </div>
+          </div>
 
-          {/* Mute Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleMute}
-            className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-          >
-            {isMuted ? (
-              <VolumeX className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            ) : (
-              <Volume2 className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            )}
-          </Button>
+          <div className="flex items-center justify-center gap-6 mt-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={previousTopic}
+              disabled={currentTopicIndex === 0}
+              className="h-12 w-12 rounded-full bg-background/50 border border-primary/10 hover:bg-background/80"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
 
-          {/* Pause/Play Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={togglePause}
-            disabled={isMuted}
-            className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-          >
-            {isPaused ? (
-              <Play className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            ) : (
-              <Pause className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-            )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePause}
+              disabled={isMuted}
+              aria-label="Play/Pause"
+              className="h-12 w-12 rounded-full bg-background/50 border border-primary/10 hover:bg-background/80"
+            >
+              {isPaused ? (
+                <Play className="w-6 h-6" />
+              ) : (
+                <Pause className="w-6 h-6" />
+              )}
+            </Button>
 
-          {/* Next Topic Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={nextTopic}
-            className={`${isFullscreen ? "h-16 w-16" : "h-12 w-12"} rounded-full bg-background/50 backdrop-blur border-primary/20 hover:bg-background/80`}
-          >
-            <ChevronRight className={`${isFullscreen ? "w-7 h-7" : "w-5 h-5"}`} />
-          </Button>
-        </div>
-
-        {/* Horizontal Progress Bar - Always visible during prayer session */}
-        <div className="w-full mt-8">
-          <Progress value={timerProgress} className="w-full" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={nextTopic}
+              className="h-12 w-12 rounded-full bg-background/50 border border-primary/10 hover:bg-background/80"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
