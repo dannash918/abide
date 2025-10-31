@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { Play, Pause, Volume2, VolumeX, X, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Topic, PrayerPoint } from "@/lib/types"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalm-13'
 
 interface PrayerSessionPlayerProps {
   topics: Topic[]

@@ -11,11 +11,12 @@ import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
 import { confessionFlows } from "@/lib/confession-flow"
 import { lordsPrayerFlows } from "@/lib/lords-prayer-flow"
+import { psalm13Flows } from "@/lib/psalm-13-flow"
 import { getEverydayFlow, getYourPrayersFlow } from "@/lib/everyday-flow"
 import type { Topic } from "@/lib/types"
 import { PrayerSessionPlayer } from "@/components/prayer-session-player"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalm-13'
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
@@ -33,6 +34,8 @@ const getPreviewTopicsForFlow = (flow: PrayerFlow, selectedCount: number, prayer
     return confessionFlows.map(t => t.name)
   } else if (flow === 'lords-prayer') {
     return lordsPrayerFlows.map(t => t.name)
+  } else if (flow === 'psalm-13') {
+    return psalm13Flows.map(t => t.name)
   }
   return []
 }
@@ -93,6 +96,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       topics = confessionFlows
     } else if (selectedFlow === 'lords-prayer') {
       topics = lordsPrayerFlows
+    } else if (selectedFlow === 'psalm-13') {
+      topics = psalm13Flows
     }
 
     // Calculate dynamic pause duration
@@ -231,6 +236,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                   <SelectItem value="your-prayers">Your Prayers</SelectItem>
                   <SelectItem value="confession">Confession</SelectItem>
                   <SelectItem value="lords-prayer">Lord's Prayer</SelectItem>
+                  <SelectItem value="psalm-13">Psalm 13</SelectItem>
                 </SelectContent>
               </Select>
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 shadow-sm">
