@@ -44,7 +44,7 @@ export function getConfessionPoints(): PrayerPoint[] {
   return [
     {
       id: 'confession-intro',
-      text: 'Spend some time reflecting and confessing your sins to God',
+      text: 'Take some time to reflect and confess your sins to God',
       topicName: 'Confession',
     },
     {
