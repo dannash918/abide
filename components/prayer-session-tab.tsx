@@ -50,6 +50,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
   const [isLoading, setIsLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [premiumUnavailable, setPremiumUnavailable] = useState(false)
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
   const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
   const [previewTopics, setPreviewTopics] = useState<Topic[]>([])
@@ -212,6 +213,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     }
   }, [selectedFlow, selectedTotalTime])
 
+  // Note: removed toast usage for ElevenLabs check per request; we'll log to console instead
+
   // Load user settings on component mount
   useEffect(() => {
     const loadUserSettings = async () => {
@@ -226,9 +229,48 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
             .single()
 
           if (data && !error) {
+            // Set UI state from saved settings
             setVoiceType(data.voice_type as "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader")
             setSilencePreference(data.silence_preference)
             setTopicCountPreference(data.topic_count_preference)
+
+            // Only perform the ElevenLabs check (and show the warning) if the saved setting is an ElevenLabs voice
+            if (data.voice_type === 'maysie' || data.voice_type === 'rachel') {
+              try {
+                const res = await fetch('/api/elevenlabs/check-tokens')
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({ error: 'unknown' }))
+                  console.warn('ElevenLabs check failed', err)
+                } else {
+                  const json = await res.json()
+
+                  // Log to browser console
+                  try {
+                    if (json.tokensLeft == null) {
+                      console.log('[ElevenLabs] tokensLeft: null')
+                    } else {
+                      console.log('[ElevenLabs] tokensLeft:', json.tokensLeft, 'character_count:', json.character_count, 'character_limit:', json.character_limit)
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+
+                  if (json.tokensLeft == null) {
+                    console.log('[ElevenLabs] could not determine remaining tokens')
+                  } else {
+                    console.log('[ElevenLabs] tokensLeft:', json.tokensLeft)
+
+                    if (typeof json.tokensLeft === 'number' && json.tokensLeft < 200) {
+                      console.log('[ElevenLabs] tokens low, defaulting to Polly (Ruth)')
+                      setVoiceType('polly')
+                      setPremiumUnavailable(true)
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn('Error checking ElevenLabs tokens:', e)
+              }
+            }
           }
         }
       } catch (error) {
@@ -240,6 +282,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     loadUserSettings()
   }, [])
+
+  // (Token check is performed during settings load only; no-op here)
+
+  // (Token re-check on voice change removed — checks are performed during settings load only)
 
   if (loading) {
     return (
@@ -287,6 +333,11 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 setTopicCountPreference={setTopicCountPreference}
               />
             </div>
+            {premiumUnavailable && (
+              <div className="mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-2 text-sm text-yellow-900">
+                Premium Voices are unavailable, you have been defaulted back to a different voice
+              </div>
+            )}
             <div className="space-y-3 pt-2">
               <Label htmlFor="flow" className="text-base">
                 Prayer Flow
