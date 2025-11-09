@@ -34,8 +34,11 @@ export function PrayerSessionPlayer({
     let total = 0;
     topics.forEach(topic => {
       if (topic.name === 'Silence') {
-        // Silence topic: use silenceOption per prayer point
-        total += topic.prayerPoints.length * Number.parseInt(silenceOption);
+        // Divide total silence time by number of points in Silence topic
+        const silencePoints = topic.prayerPoints.length;
+        const silenceTotal = Number.parseInt(silenceOption);
+        const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
+        total += silencePoints * silencePerPoint;
       } else if (topic.name === "Lord's Prayer") {
         // Lord's Prayer: no pause, just 1s per prayer point (or could be 0)
         total += topic.prayerPoints.length * 1;
@@ -732,38 +735,50 @@ export function PrayerSessionPlayer({
               }
             }
 
-            // Pause after each prayer point (using the selected duration for non-silence, selected silence duration for silence)
+            // Pause after each prayer point (using the selected duration for non-silence, and divided silence duration for silence)
             // Skip pause for Lord's Prayer to finish immediately
-            if (currentTopic !== 'Lord\'s Prayer') {
+            if (currentTopic !== "Lord's Prayer") {
               await new Promise<void>((resolve) => {
                 // Start the timer when pause begins
-                startTimer()
+                startTimer();
 
                 const checkInterval = setInterval(() => {
-                  if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
+                  if (
+                    cancellationRef.current.cancelled ||
+                    pauseRef.current.paused ||
+                    isMuted ||
+                    currentTopicIndex !== originalTopicIndex ||
+                    currentSession !== readingSessionRef.current
+                  ) {
                     try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
-                    removeInterval(checkInterval)
-                    stopTimer() // Stop timer if pause is interrupted
-                    resolve()
-                    return
+                    removeInterval(checkInterval);
+                    stopTimer(); // Stop timer if pause is interrupted
+                    resolve();
+                    return;
                   }
-                }, 100)
-                addInterval(checkInterval)
+                }, 100);
+                addInterval(checkInterval);
 
-                // Use silence duration for silence topic, otherwise use regular pause duration
-                const durationMs = currentTopic === 'Silence'
-                  ? Number.parseInt(silenceOption) * 1000
-                  : Number.parseInt(calculatedPauseDuration) * 1000
+                // For Silence topic, divide silenceOption by number of points
+                let durationMs;
+                if (currentTopic === 'Silence') {
+                  const silencePoints = currentPrayerPoints.length;
+                  const silenceTotal = Number.parseInt(silenceOption);
+                  const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
+                  durationMs = silencePerPoint * 1000;
+                } else {
+                  durationMs = Number.parseInt(calculatedPauseDuration) * 1000;
+                }
 
                 const t = setTimeout(() => {
                   try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
-                  removeInterval(checkInterval)
-                  removeTimeout(t)
-                  completeTimer() // Complete timer when pause completes naturally (keeps at 100%)
-                  resolve()
-                }, durationMs)
-                addTimeout(t)
-              })
+                  removeInterval(checkInterval);
+                  removeTimeout(t);
+                  completeTimer(); // Complete timer when pause completes naturally (keeps at 100%)
+                  resolve();
+                }, durationMs);
+                addTimeout(t);
+              });
             }
 
             // If we got to the end of the loop without breaking, mark as completed
