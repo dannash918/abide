@@ -52,6 +52,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
   const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
+  const [previewTopics, setPreviewTopics] = useState<Topic[]>([])
 
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
@@ -95,6 +96,31 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     ? getSelectedCountFromTime(selectedTotalTime)
     : Number.parseInt(topicCountPreference)
 
+  // Maintain a cached preview of the topics so the preview shown in the UI
+  // matches the actual topics used when starting the session (prevents
+  // getYourPrayers from returning a different random set on start)
+  useEffect(() => {
+    if (!prayerData) {
+      setPreviewTopics([])
+      return
+    }
+
+    let topics: Topic[] = []
+    if (selectedFlow === 'everyday') {
+      topics = getEverydayFlow(selectedCount, prayerData)
+    } else if (selectedFlow === 'your-prayers') {
+      topics = getYourPrayersFlow(selectedCount, prayerData)
+    } else if (selectedFlow === 'confession') {
+      topics = confessionFlows
+    } else if (selectedFlow === 'lords-prayer') {
+      topics = lordsPrayerFlows
+    } else if (selectedFlow === 'psalm-13') {
+      topics = psalm13Flows
+    }
+
+    setPreviewTopics(topics)
+  }, [selectedFlow, selectedCount, prayerData])
+
   // Calculate silenceOption based on total time (longer sessions = longer silence)
   const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
     const minutes = Number.parseInt(totalTimeMinutes)
@@ -112,18 +138,24 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     : silencePreference
 
   const startPraying = async () => {
-    let topics: Topic[] = []
+    // Use the cached previewTopics if available so the actual session uses
+    // exactly what was shown in the preview.
+    let topics: Topic[] = previewTopics && previewTopics.length > 0 ? previewTopics : []
 
-    if (selectedFlow === 'everyday') {
-      topics = getEverydayFlow(selectedCount, prayerData)
-    } else if (selectedFlow === 'your-prayers') {
-      topics = getYourPrayersFlow(selectedCount, prayerData)
-    } else if (selectedFlow === 'confession') {
-      topics = confessionFlows
-    } else if (selectedFlow === 'lords-prayer') {
-      topics = lordsPrayerFlows
-    } else if (selectedFlow === 'psalm-13') {
-      topics = psalm13Flows
+    // Fallback (shouldn't usually be needed)
+    if (topics.length === 0) {
+      console.log("Got to fallback unfortunately")
+      if (selectedFlow === 'everyday') {
+        topics = getEverydayFlow(selectedCount, prayerData)
+      } else if (selectedFlow === 'your-prayers') {
+        topics = getYourPrayersFlow(selectedCount, prayerData)
+      } else if (selectedFlow === 'confession') {
+        topics = confessionFlows
+      } else if (selectedFlow === 'lords-prayer') {
+        topics = lordsPrayerFlows
+      } else if (selectedFlow === 'psalm-13') {
+        topics = psalm13Flows
+      }
     }
 
     // Calculate dynamic pause duration
@@ -267,7 +299,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
               </Select>
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 shadow-sm">
                 <div className="space-y-2">
-                  {getPreviewTopicsForFlow(selectedFlow, selectedCount, prayerData).map((topicName, index) => (
+                  {(previewTopics && previewTopics.length > 0 ? previewTopics.map(t => t.name) : getPreviewTopicsForFlow(selectedFlow, selectedCount, prayerData)).map((topicName, index) => (
                     <div key={`topic-${index}`} className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-medium text-primary">{index + 1}</span>
@@ -312,7 +344,15 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={startPraying} disabled={selectedFlow !== 'confession' && selectedFlow !== 'lords-prayer' && prayerData.topics.length === 0} size="lg" className="w-full gap-2 text-lg h-14">
+            <Button
+              onClick={startPraying}
+              size="lg"
+              className="w-full gap-2 text-lg h-14"
+              disabled={
+                // For flows that require user prayer data, ensure previewTopics is ready
+                (selectedFlow !== 'confession' && selectedFlow !== 'lords-prayer' && previewTopics.length === 0)
+              }
+            >
               <Play className="w-5 h-5" />
               Start Praying
             </Button>
