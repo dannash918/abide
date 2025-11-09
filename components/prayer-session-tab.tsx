@@ -169,13 +169,13 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     // Count prayer points that will have pauses (excluding Lord's Prayer and Silence)
     const prayerPointsForPaces = topics
-      .filter(topic => topic.name !== 'Lord\'s Prayer' && topic.name !== 'Silence')
+      .filter(topic => topic.name !== 'Silence')
       .reduce((total, topic) => total + topic.prayerPoints.length, 0)
 
     console.log(`  Prayer points that will have pauses (excluding Lord's Prayer and Silence): ${prayerPointsForPaces}`)
     console.log(`    Breakdown:`)
     topics.forEach((topic, index) => {
-      if (topic.name !== 'Lord\'s Prayer' && topic.name !== 'Silence') {
+      if (topic.name !== 'Silence') {
         console.log(`      ${topic.name}: ${topic.prayerPoints.length} prayer points`)
       } else {
         console.log(`      ${topic.name}: ${topic.prayerPoints.length} prayer points (excluded from pause calculation)`)

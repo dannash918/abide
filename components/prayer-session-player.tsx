@@ -39,9 +39,6 @@ export function PrayerSessionPlayer({
         const silenceTotal = Number.parseInt(silenceOption);
         const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
         total += silencePoints * silencePerPoint;
-      } else if (topic.name === "Lord's Prayer") {
-        // Lord's Prayer: no pause, just 1s per prayer point (or could be 0)
-        total += topic.prayerPoints.length * 1;
       } else {
         // All other topics: use calculatedPauseDuration per prayer point
         total += topic.prayerPoints.length * Number.parseInt(calculatedPauseDuration);
