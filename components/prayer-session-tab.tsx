@@ -56,13 +56,14 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
     const minutes = Number.parseInt(totalTimeMinutes)
-    // Scale: 5min=2 topics, 8min=3 topics, 10min=4 topics, 15min=5 topics, 20min=6 topics, 30min=8 topics
-    if (minutes <= 5) return 3
-    if (minutes <= 8) return 4
-    if (minutes <= 10) return 5
-    if (minutes <= 15) return 7
-    if (minutes <= 20) return 10
-    return 10
+    // Scale: 5min=1 topics, 8min=2 topics, 10min=3 topics, 15min=4 topics, 20min=5 topics, 30min=7 topics
+    if (minutes <= 5) return 1
+    if (minutes <= 8) return 2
+    if (minutes <= 10) return 3
+    if (minutes <= 12) return 4
+    if (minutes <= 15) return 5
+    if (minutes <= 20) return 7
+    return 5
   }
 
   const selectedCount = topicCountPreference === "automatic"
