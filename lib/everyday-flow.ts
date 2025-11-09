@@ -47,6 +47,7 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
     {
       id: 'lords-prayer',
       name: 'Lord\'s Prayer',
+      customSpeechHeader: "Let's finish with the Lord's Prayer",
       prayerPoints: lordsPrayerPoints
     }
   ];

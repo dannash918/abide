@@ -43,11 +43,8 @@ export function PrayerSessionPlayer({
         // All other topics: use calculatedPauseDuration per prayer point
         total += topic.prayerPoints.length * Number.parseInt(calculatedPauseDuration);
       }
+      total += 5; // 5 seconds for topic heading
     });
-    // Add 2s for each topic announcement
-    total += topics.length * 2;
-    // Add 1s between topics
-    total += (topics.length - 1) * 1;
     return total;
   };
   const totalSessionSeconds = getTotalSessionSeconds();

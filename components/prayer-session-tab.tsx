@@ -167,12 +167,12 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     console.log(`  Silence time per silence topic: ${silenceSeconds} seconds`)
 
-    // Count prayer points that will have pauses (excluding Lord's Prayer and Silence)
+    // Count prayer points that will have pauses (excluding Silence)
     const prayerPointsForPaces = topics
       .filter(topic => topic.name !== 'Silence')
       .reduce((total, topic) => total + topic.prayerPoints.length, 0)
 
-    console.log(`  Prayer points that will have pauses (excluding Lord's Prayer and Silence): ${prayerPointsForPaces}`)
+    console.log(`  Prayer points that will have pauses (excluding Silence): ${prayerPointsForPaces}`)
     console.log(`    Breakdown:`)
     topics.forEach((topic, index) => {
       if (topic.name !== 'Silence') {
@@ -182,10 +182,16 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       }
     })
 
-    // Available time for pauses (total time minus silence time)
-    const availableSecondsForPauses = totalSelectedSeconds - silenceSeconds
+  // Calculate time reserved for topic headings (5 seconds per heading)
+  // A heading is announced unless customSpeechHeader is explicitly an empty string
+  const headingCount = topics.filter(t => t.customSpeechHeader !== '').length
+  const headingSeconds = headingCount * 5
 
-    console.log(`  Available time for pauses (total time - silence time): ${availableSecondsForPauses} seconds`)
+  // Available time for pauses (total time minus silence time and topic heading time)
+  const availableSecondsForPauses = Math.max(0, totalSelectedSeconds - silenceSeconds - headingSeconds)
+
+  console.log(`  Heading count: ${headingCount}, reserved heading time: ${headingSeconds} seconds`)
+  console.log(`  Available time for pauses (total time - silence time - heading time): ${availableSecondsForPauses} seconds`)
 
     // Calculate pause duration per prayer point (minimum 3 seconds)
     const calculatedPause = prayerPointsForPaces > 0
