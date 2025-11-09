@@ -554,115 +554,160 @@ export function PrayerSessionPlayer({
           if (topicAnnouncement) {
             announcedTopicsRef.current.add(currentTopicIndex)
 
+            // Create a 5-second timer that starts now (when the API call will be initiated)
+            let fiveSecResolve: () => void
+            const fiveSecPromise = new Promise<void>((resolve) => {
+              fiveSecResolve = resolve
+            })
+            // Start the 5s timer with cancellation checks
+            const fiveCheckInterval = setInterval(() => {
+              if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
+                try { clearInterval(fiveCheckInterval as any) } catch (e) { /* ignore */ }
+                removeInterval(fiveCheckInterval)
+                try { fiveSecResolve && fiveSecResolve() } catch (e) { /* ignore */ }
+                return
+              }
+            }, 100)
+            addInterval(fiveCheckInterval)
+            const fiveTimeout = setTimeout(() => {
+              try { clearInterval(fiveCheckInterval as any) } catch (e) { /* ignore */ }
+              removeInterval(fiveCheckInterval)
+              try { fiveSecResolve && fiveSecResolve() } catch (e) { /* ignore */ }
+              removeTimeout(fiveTimeout)
+            }, 5000)
+            addTimeout(fiveTimeout)
+
+            // announcementPromise resolves when the announcement audio completes (or fallback completes)
+            let announcementPromise: Promise<void> = Promise.resolve()
+
             if (voiceType === "rachel" || voiceType === "maysie") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
-                if (response.ok) {
-                  const blob = await response.blob()
-                  await playBlobAudio(blob)
-                } else {
-                  throw new Error('API failed')
-                }
+                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
+                announcementPromise = (async () => {
+                  try {
+                    const response = await fetchPromise
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      await playBlobAudio(blob)
+                    } else {
+                      throw new Error('API failed')
+                    }
+                  } catch (error) {
+                    console.warn('Failed to generate topic announcement with ElevenLabs:', error)
+                    // Fallback to browser speech synthesis
+                    if (typeof window !== "undefined" && window.speechSynthesis) {
+                      await new Promise<void>((resolve) => {
+                        try {
+                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                          topicUtterance.rate = 0.65
+                          topicUtterance.pitch = 0.9
+                          topicUtterance.volume = 0.8
+                          topicUtterance.onend = () => resolve()
+                          topicUtterance.onerror = () => resolve()
+                          window.speechSynthesis.speak(topicUtterance)
+                        } catch (e) {
+                          resolve()
+                        }
+                      })
+                    }
+                  }
+                })()
               } catch (error) {
-                console.warn('Failed to generate topic announcement with ElevenLabs:', error)
-                // Fallback to browser speech synthesis
-                if (typeof window !== "undefined" && window.speechSynthesis) {
-                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                    // Calmer, softer, slower fallback
-                    topicUtterance.rate = 0.65
-                    topicUtterance.pitch = 0.9
-                    topicUtterance.volume = 0.8
-                    window.speechSynthesis.speak(topicUtterance)
-                    await new Promise<void>((resolve) => {
-                      topicUtterance.onend = () => resolve()
-                      topicUtterance.onerror = () => resolve()
-                    })
-                }
+                announcementPromise = Promise.resolve()
               }
             } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
-                if (response.ok) {
-                  const blob = await response.blob()
-                  await playBlobAudio(blob)
-                } else {
-                  throw new Error('API failed')
-                }
+                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
+                announcementPromise = (async () => {
+                  try {
+                    const response = await fetchPromise
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      await playBlobAudio(blob)
+                    } else {
+                      throw new Error('API failed')
+                    }
+                  } catch (error) {
+                    console.warn(`Failed to generate topic announcement with ${voiceType}:`, error)
+                    if (typeof window !== "undefined" && window.speechSynthesis) {
+                      await new Promise<void>((resolve) => {
+                        try {
+                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                          topicUtterance.rate = 0.65
+                          topicUtterance.pitch = 0.9
+                          topicUtterance.volume = 0.8
+                          topicUtterance.onend = () => resolve()
+                          topicUtterance.onerror = () => resolve()
+                          window.speechSynthesis.speak(topicUtterance)
+                        } catch (e) { resolve() }
+                      })
+                    }
+                  }
+                })()
               } catch (error) {
-                console.warn(`Failed to generate topic announcement with ${voiceType}:`, error)
-                // Fallback to browser speech synthesis
-                if (typeof window !== "undefined" && window.speechSynthesis) {
-                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                  topicUtterance.rate = 0.65
-                  topicUtterance.pitch = 0.9
-                  topicUtterance.volume = 0.8
-                  window.speechSynthesis.speak(topicUtterance)
-                  await new Promise<void>((resolve) => {
-                    topicUtterance.onend = () => resolve()
-                    topicUtterance.onerror = () => resolve()
-                  })
-                }
+                announcementPromise = Promise.resolve()
               }
             } else if (voiceType === "stephen") {
               try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=stephen&type=generative`)
-                if (response.ok) {
-                    const blob = await response.blob()
-                    await playBlobAudio(blob)
-                } else {
-                  throw new Error('API failed')
-                }
+                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=stephen&type=generative`)
+                announcementPromise = (async () => {
+                  try {
+                    const response = await fetchPromise
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      await playBlobAudio(blob)
+                    } else {
+                      throw new Error('API failed')
+                    }
+                  } catch (error) {
+                    console.warn('Failed to generate topic announcement with Stephen generative:', error)
+                    if (typeof window !== "undefined" && window.speechSynthesis) {
+                      await new Promise<void>((resolve) => {
+                        try {
+                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                          topicUtterance.rate = 0.65
+                          topicUtterance.pitch = 0.9
+                          topicUtterance.volume = 0.8
+                          topicUtterance.onend = () => resolve()
+                          topicUtterance.onerror = () => resolve()
+                          window.speechSynthesis.speak(topicUtterance)
+                        } catch (e) { resolve() }
+                      })
+                    }
+                  }
+                })()
               } catch (error) {
-                console.warn('Failed to generate topic announcement with Stephen generative:', error)
-                // Fallback to browser speech synthesis
-                if (typeof window !== "undefined" && window.speechSynthesis) {
-                  const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                  topicUtterance.rate = 0.65
-                  topicUtterance.pitch = 0.9
-                  topicUtterance.volume = 0.8
-                  window.speechSynthesis.speak(topicUtterance)
-                  await new Promise<void>((resolve) => {
-                    topicUtterance.onend = () => resolve()
-                    topicUtterance.onerror = () => resolve()
-                  })
-                }
+                announcementPromise = Promise.resolve()
               }
             } else {
               // Screen reader
               if (typeof window !== "undefined" && window.speechSynthesis) {
-                const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                topicUtterance.rate = 0.65
-                topicUtterance.pitch = 0.9
-                topicUtterance.volume = 0.8
-                window.speechSynthesis.speak(topicUtterance)
-                await new Promise<void>((resolve) => {
-                  topicUtterance.onend = () => resolve()
-                  topicUtterance.onerror = () => resolve()
+                announcementPromise = new Promise<void>((resolve) => {
+                  try {
+                    const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
+                    topicUtterance.rate = 0.65
+                    topicUtterance.pitch = 0.9
+                    topicUtterance.volume = 0.8
+                    topicUtterance.onend = () => resolve()
+                    topicUtterance.onerror = () => resolve()
+                    window.speechSynthesis.speak(topicUtterance)
+                  } catch (e) { resolve() }
                 })
+              } else {
+                announcementPromise = Promise.resolve()
               }
             }
+
+            // Wait for BOTH the 5s timer (which started when the API call was initiated)
+            // and the announcement playback to complete. This ensures the first prayer
+            // point starts no earlier than 5s after the API call and also doesn't
+            // start while the announcement is still playing.
+            try {
+              await Promise.all([fiveSecPromise, announcementPromise])
+            } catch (e) {
+              // ignore - cancellation or errors are handled elsewhere
+            }
           }
-
-          // Start 2-second pause AFTER topic announcement finishes
-          await new Promise<void>((resolve) => {
-            const checkInterval = setInterval(() => {
-              if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) {
-                try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
-                removeInterval(checkInterval)
-                resolve()
-                return
-              }
-            }, 100)
-            addInterval(checkInterval)
-
-            const t = setTimeout(() => {
-              try { clearInterval(checkInterval as any) } catch (e) { /* ignore */ }
-              removeInterval(checkInterval)
-              removeTimeout(t)
-              resolve()
-            }, 2000) // 2-second pause starting when topic announcement finishes
-            addTimeout(t)
-          })
 
           let readingCompleted = false
           for (let i = 0; i < currentPrayerPoints.length; i++) {
