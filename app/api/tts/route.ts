@@ -6,6 +6,7 @@ const POLLY_VOICES = {
   danielle: { voiceId: 'Danielle', engine: 'generative' as const },
   patrick: { voiceId: 'Patrick', engine: 'long-form' as const },
   stephen: { voiceId: 'Stephen', engine: 'generative' as const },
+  amy: { voiceId: 'Amy', engine: 'generative' as const },
 } as const
 
 function addLordsPrayerPauses(text: string): string {
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Handle AWS Polly voices
-  if (provider === 'polly' || provider === 'danielle' || provider === 'patrick' || provider === 'stephen') {
+  if (provider === 'polly' || provider === 'danielle' || provider === 'patrick' || provider === 'stephen' || provider === 'amy') {
     try {
       const buffer = await handlePollyTTS(text, provider, type || undefined)
       return new NextResponse(buffer, {

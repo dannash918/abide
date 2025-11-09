@@ -14,7 +14,7 @@ interface PrayerSessionPlayerProps {
   selectedFlow: PrayerFlow
   silenceOption: string
   calculatedPauseDuration: string
-  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "screenReader"
+  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader"
   onStop: () => void
 }
 
@@ -158,7 +158,7 @@ export function PrayerSessionPlayer({
     // Select provider flow based on voiceType
     if (voiceType === 'rachel' || voiceType === 'maysie') {
       await tryApiThenFallback(voiceType)
-    } else if (voiceType === 'polly' || voiceType === 'danielle' || voiceType === 'patrick') {
+    } else if (voiceType === 'polly' || voiceType === 'danielle' || voiceType === 'patrick' || voiceType === 'amy') {
       await tryApiThenFallback(voiceType)
     } else if (voiceType === 'stephen') {
       await tryApiThenFallback('stephen', { generative: true })
@@ -612,7 +612,7 @@ export function PrayerSessionPlayer({
               } catch (error) {
                 announcementPromise = Promise.resolve()
               }
-            } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick") {
+            } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick" || voiceType === "amy") {
               try {
                 const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 announcementPromise = (async () => {
