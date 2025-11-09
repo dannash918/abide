@@ -56,7 +56,32 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
     const minutes = Number.parseInt(totalTimeMinutes)
-    // Scale: 5min=1 topics, 8min=2 topics, 10min=3 topics, 15min=4 topics, 20min=5 topics, 30min=7 topics
+
+    // Default mapping for 'everyday' flow (original behavior)
+    if (selectedFlow === 'everyday') {
+      // Scale: 5min=1 topics, 8min=2 topics, 10min=3 topics, 12min=4 topics, 15min=5 topics, 20min=7 topics
+      if (minutes <= 5) return 1
+      if (minutes <= 8) return 2
+      if (minutes <= 10) return 3
+      if (minutes <= 12) return 4
+      if (minutes <= 15) return 5
+      if (minutes <= 20) return 7
+      return 5
+    }
+
+    // Alternate mapping for 'your-prayers' flow: let users cover more of their own prayer points
+    if (selectedFlow === 'your-prayers') {
+      // Suggested scale: 5min=1, 8min=2, 10min=4, 12min=5, 15min=6, 20min=8, 30min=10
+      if (minutes <= 5) return 3
+      if (minutes <= 8) return 4
+      if (minutes <= 10) return 5
+      if (minutes <= 12) return 6
+      if (minutes <= 15) return 8
+      if (minutes <= 20) return 10
+      return 12
+    }
+
+    // Fallback: use the everyday mapping
     if (minutes <= 5) return 1
     if (minutes <= 8) return 2
     if (minutes <= 10) return 3

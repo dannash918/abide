@@ -40,7 +40,8 @@ async function handlePollyTTS(text: string, provider: string, type?: string) {
   // Add pauses for Lord's Prayer
   const processedText = addLordsPrayerPauses(text)
 
-  const ssmlText = `<speak><prosody rate="90%" volume="soft">${processedText}</prosody></speak>`
+  // Reduce Polly speaking rate a bit so voices sound slightly slower and calmer
+  const ssmlText = `<speak><prosody rate="85%" volume="soft">${processedText}</prosody></speak>`
 
   const command = new SynthesizeSpeechCommand({
     Text: ssmlText,
