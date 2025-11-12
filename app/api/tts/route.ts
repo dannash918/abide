@@ -9,6 +9,15 @@ const POLLY_VOICES = {
   amy: { voiceId: 'Amy', engine: 'generative' as const },
 } as const
 
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '\u0026amp;')
+    .replace(/</g, '\u0026lt;')
+    .replace(/>/g, '\u0026gt;')
+    .replace(/"/g, '\u0026quot;')
+    .replace(/'/g, '\u0026#39;')
+}
+
 function addLordsPrayerPauses(text: string): string {
   // Check if this is the Lord's Prayer by looking for key phrases
   if (text.includes('Our Father') && text.includes('hallowed be') && text.includes('Amen.')) {
@@ -41,8 +50,11 @@ async function handlePollyTTS(text: string, provider: string, type?: string) {
   // Add pauses for Lord's Prayer
   const processedText = addLordsPrayerPauses(text)
 
+  // Escape XML entities to prevent SSML errors
+  const escapedText = escapeXml(processedText)
+
   // Reduce Polly speaking rate a bit so voices sound slightly slower and calmer
-  const ssmlText = `<speak><prosody rate="85%" volume="soft">${processedText}</prosody></speak>`
+  const ssmlText = `<speak><prosody rate="85%" volume="soft">${escapedText}</prosody></speak>`
 
   const command = new SynthesizeSpeechCommand({
     Text: ssmlText,
