@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'Organize your prayers and deepen your spiritual practice',
   generator: 'v0.app',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  manifest: '/manifest.json',
+  themeColor: '#000000',
 }
 
 export default function RootLayout({

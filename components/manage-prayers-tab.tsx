@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Trash2, Loader2, Edit } from "lucide-react"
+import { Plus, Trash2, Loader2, Edit, Download } from "lucide-react"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
@@ -36,7 +36,55 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [newTopicName, setNewTopicName] = useState("")
   const [isCreatingNewTopic, setIsCreatingNewTopic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isInstallable, setIsInstallable] = useState(false)
 
+  useEffect(() => {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered: ', registration)
+        })
+        .catch((registrationError) => {
+          console.log('SW registration failed: ', registrationError)
+        })
+    }
+
+    // Handle PWA install prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setIsInstallable(true)
+    }
+
+    const handleAppInstalled = () => {
+      setIsInstallable(false)
+      setDeferredPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt')
+      } else {
+        console.log('User dismissed the install prompt')
+      }
+      setDeferredPrompt(null)
+      setIsInstallable(false)
+    }
+  }
 
   const handleDeleteTopic = async (topicId: string) => {
     setIsSubmitting(true)
@@ -108,6 +156,24 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {/* Download as App Button */}
+      {isInstallable && (
+        <Card className="border-primary/20 bg-card/50 backdrop-blur">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Install Abide</h3>
+                <p className="text-sm text-muted-foreground">Add to your home screen for a better experience</p>
+              </div>
+              <Button onClick={handleInstallApp} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Download as App
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Add Prayer Point Section */}
