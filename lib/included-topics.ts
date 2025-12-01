@@ -1,5 +1,5 @@
 import { PrayerPoint } from "./types";
-import { praiseOptions } from "./praise-verses";
+import { praisePointsPairs } from "./praise-verses";
 import { confessPairs } from "./confess-options";
 
 export const introAbidePoints: PrayerPoint[][] = [
@@ -421,20 +421,8 @@ export function getAbidePoints(): PrayerPoint[] {
 
 // Function to get Praise points (random selection)
 export function getPraisePoints(): PrayerPoint[] {
-  const randomPraise = praiseOptions[Math.floor(Math.random() * praiseOptions.length)];
-  return [
-    {
-      id: 'praise-intro',
-      text: 'Spend some time praising our great God and reflecting on His majesty.',
-      topicName: 'Praise',
-    },
-    {
-      id: 'praise-verse',
-      text: randomPraise.text,
-      topicName: 'Praise',
-      verseReference: randomPraise.verse
-    }
-  ];
+  const randomPair = praisePointsPairs[Math.floor(Math.random() * praisePointsPairs.length)];
+  return randomPair;
 }
 
 // Function to get Confession points (random selection)
