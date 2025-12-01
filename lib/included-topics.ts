@@ -1,6 +1,6 @@
 import { PrayerPoint } from "./types";
 import { praiseOptions } from "./praise-verses";
-import { confessOptions } from "./confess-options";
+import { confessPairs } from "./confess-options";
 
 export const introAbidePoints: PrayerPoint[][] = [
   [
@@ -439,20 +439,8 @@ export function getPraisePoints(): PrayerPoint[] {
 
 // Function to get Confession points (random selection)
 export function getConfessionPoints(): PrayerPoint[] {
-  const randomConfess = confessOptions[Math.floor(Math.random() * confessOptions.length)];
-  return [
-    {
-      id: 'confession-intro',
-      text: 'Take some time to reflect and confess your sins to God',
-      topicName: 'Confession',
-    },
-    {
-      id: 'confession-verse',
-      text: randomConfess.text,
-      topicName: 'Confession',
-      verseReference: randomConfess.verse
-    }
-  ];
+  const randomPair = confessPairs[Math.floor(Math.random() * confessPairs.length)];
+  return randomPair;
 }
 
 // Silence topic points
