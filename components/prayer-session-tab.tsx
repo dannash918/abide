@@ -12,18 +12,21 @@ import { supabase } from "@/lib/supabase"
 import { confessionFlows } from "@/lib/confession-flow"
 import { lordsPrayerFlows } from "@/lib/lords-prayer-flow"
 import { psalm13Flows } from "@/lib/psalm-13-flow"
+import { psalm103Flows } from "@/lib/psalm-103-flow"
 import { getEverydayFlow, getYourPrayersFlow } from "@/lib/everyday-flow"
 import type { Topic } from "@/lib/types"
 import { PrayerSessionPlayer } from "@/components/prayer-session-player"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalm-13'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
+
+type PsalmFlow = 'psalm-13' | 'psalm-103'
 
 interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
 }
 
-// Helper functions to get preview topics for UI descriptions
-const getPreviewTopicsForFlow = (flow: PrayerFlow, selectedCount: number, prayerData: any): string[] => {
+  // Helper functions to get preview topics for UI descriptions
+const getPreviewTopicsForFlow = (flow: PrayerFlow, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): string[] => {
   if (flow === 'everyday') {
     const topics = getEverydayFlow(selectedCount, prayerData)
     return topics.map(t => t.name)
@@ -34,8 +37,9 @@ const getPreviewTopicsForFlow = (flow: PrayerFlow, selectedCount: number, prayer
     return confessionFlows.map(t => t.name)
   } else if (flow === 'lords-prayer') {
     return lordsPrayerFlows.map(t => t.name)
-  } else if (flow === 'psalm-13') {
-    return psalm13Flows.map(t => t.name)
+  } else if (flow === 'psalms') {
+    const topics = psalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
+    return topics.map(t => t.name)
   }
   return []
 }
@@ -52,6 +56,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [premiumUnavailable, setPremiumUnavailable] = useState(false)
   const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
+  const [selectedPsalmFlow, setSelectedPsalmFlow] = useState<PsalmFlow>('psalm-13')
   const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
   const [previewTopics, setPreviewTopics] = useState<Topic[]>([])
 
@@ -115,12 +120,12 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       topics = confessionFlows
     } else if (selectedFlow === 'lords-prayer') {
       topics = lordsPrayerFlows
-    } else if (selectedFlow === 'psalm-13') {
-      topics = psalm13Flows
+    } else if (selectedFlow === 'psalms') {
+      topics = selectedPsalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
     }
 
     setPreviewTopics(topics)
-  }, [selectedFlow, selectedCount, prayerData])
+  }, [selectedFlow, selectedCount, prayerData, selectedPsalmFlow])
 
   // Calculate silenceOption based on total time (longer sessions = longer silence)
   const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
@@ -154,8 +159,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
         topics = confessionFlows
       } else if (selectedFlow === 'lords-prayer') {
         topics = lordsPrayerFlows
-      } else if (selectedFlow === 'psalm-13') {
-        topics = psalm13Flows
+      } else if (selectedFlow === 'psalms') {
+        topics = selectedPsalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
       }
     }
 
@@ -351,12 +356,28 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                   <SelectItem value="your-prayers">Your Prayers</SelectItem>
                   <SelectItem value="confession">Confession</SelectItem>
                   <SelectItem value="lords-prayer">Lord's Prayer</SelectItem>
-                  <SelectItem value="psalm-13">Psalm 13</SelectItem>
+                  <SelectItem value="psalms">Psalms</SelectItem>
                 </SelectContent>
               </Select>
+              {selectedFlow === 'psalms' && (
+                <>
+                  <Label htmlFor="psalm" className="text-base">
+                    Select Psalm
+                  </Label>
+                  <Select value={selectedPsalmFlow} onValueChange={(value: PsalmFlow) => setSelectedPsalmFlow(value)}>
+                    <SelectTrigger id="psalm" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="psalm-13">Psalm 13</SelectItem>
+                      <SelectItem value="psalm-103">Psalm 103</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 shadow-sm">
                 <div className="space-y-2">
-                  {(previewTopics && previewTopics.length > 0 ? previewTopics.map(t => t.name) : getPreviewTopicsForFlow(selectedFlow, selectedCount, prayerData)).map((topicName, index) => (
+                  {(previewTopics && previewTopics.length > 0 ? previewTopics.map(t => t.name) : getPreviewTopicsForFlow(selectedFlow, selectedPsalmFlow, selectedCount, prayerData)).map((topicName, index) => (
                     <div key={`topic-${index}`} className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-medium text-primary">{index + 1}</span>

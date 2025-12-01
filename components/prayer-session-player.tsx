@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Play, Pause, Volume2, VolumeX, X, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Topic, PrayerPoint } from "@/lib/types"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalm-13'
+type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
 
 interface PrayerSessionPlayerProps {
   topics: Topic[]
@@ -711,7 +711,7 @@ export function PrayerSessionPlayer({
             if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted || currentTopicIndex !== originalTopicIndex || currentSession !== readingSessionRef.current) break
 
             const point = currentPrayerPoints[i]
-            const textToSpeak = point.verseReference && !point.verseReference.includes('Lord\'s Prayer')
+            const textToSpeak = selectedFlow !== 'psalms' && point.verseReference && !point.verseReference.includes('Lord\'s Prayer')
               ? `${point.verseReference} says: ${point.text}`
               : `${point.text}`
 
