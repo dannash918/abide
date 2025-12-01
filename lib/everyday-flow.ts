@@ -1,5 +1,5 @@
 import { Topic } from "./types";
-import { abidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints, getYourPrayers } from "./included-topics";
+import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints, getYourPrayers } from "./included-topics";
 import type { PrayerData } from "./types";
 
 // Function to get the everyday flow with user prayer count
@@ -21,7 +21,7 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
       id: 'abide',
       name: 'Abide',
       customSpeechHeader: "Let's Abide",
-      prayerPoints: abidePoints
+      prayerPoints: getAbidePoints()
     },
     {
       id: 'praise',
@@ -72,7 +72,7 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
       id: 'abide',
       name: 'Abide',
       customSpeechHeader: "Let's Abide",
-      prayerPoints: abidePoints
+      prayerPoints: getAbidePoints()
     },
     ...getYourPrayers(availableUserTopics, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
