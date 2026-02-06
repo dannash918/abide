@@ -254,7 +254,16 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
             <Card key={topic.id} className="border-primary/10 bg-card/50 backdrop-blur">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">{topic.name}</CardTitle>
+                  <div>
+                    <CardTitle className="text-xl">{topic.name}</CardTitle>
+                    {topic.themes && topic.themes.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {topic.themes.map((th) => (
+                          <span key={th} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-muted/20 text-muted-foreground">{th}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"

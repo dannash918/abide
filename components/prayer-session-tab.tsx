@@ -59,6 +59,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [selectedPsalmFlow, setSelectedPsalmFlow] = useState<PsalmFlow>('psalm-13')
   const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
   const [previewTopics, setPreviewTopics] = useState<Topic[]>([])
+  const [availableThemes, setAvailableThemes] = useState<string[]>([])
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
 
   // Calculate selectedCount based on total time (more time = more topics)
   const getSelectedCountFromTime = (totalTimeMinutes: string): number => {
@@ -111,11 +113,19 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       return
     }
 
+    // Build available themes when prayerData changes
+    const themes = Array.from(new Set(prayerData.topics.flatMap(t => t.themes || []))).filter(Boolean)
+    setAvailableThemes(themes)
+
     let topics: Topic[] = []
     if (selectedFlow === 'everyday') {
       topics = getEverydayFlow(selectedCount, prayerData)
     } else if (selectedFlow === 'your-prayers') {
-      topics = getYourPrayersFlow(selectedCount, prayerData)
+      if (selectedTheme) {
+        topics = prayerData.topics.filter(tt => (tt.themes || []).includes(selectedTheme))
+      } else {
+        topics = getYourPrayersFlow(selectedCount, prayerData)
+      }
     } else if (selectedFlow === 'confession') {
       topics = confessionFlows
     } else if (selectedFlow === 'lords-prayer') {
@@ -125,7 +135,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     }
 
     setPreviewTopics(topics)
-  }, [selectedFlow, selectedCount, prayerData, selectedPsalmFlow])
+  }, [selectedFlow, selectedCount, prayerData, selectedPsalmFlow, selectedTheme])
 
   // Calculate silenceOption based on total time (longer sessions = longer silence)
   const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
@@ -407,6 +417,28 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                       <SelectItem value="psalm-103">Psalm 103</SelectItem>
                     </SelectContent>
                   </Select>
+                </>
+              )}
+              {selectedFlow === 'your-prayers' && (
+                <>
+                  {availableThemes.length > 0 && (
+                    <>
+                      <Label htmlFor="theme" className="text-base mt-3">Theme</Label>
+                      <Select value={selectedTheme ?? 'ALL_THEMES'} onValueChange={(v: string) => { setSelectedTheme(v === 'ALL_THEMES' ? null : v) }}>
+                        <SelectTrigger id="theme" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL_THEMES">All Themes</SelectItem>
+                          {availableThemes.map((th) => (
+                            <SelectItem key={th} value={th}>{th}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+
+                  {/* Time limit selection removed here to avoid duplicate; global Total Prayer Time is used instead */}
                 </>
               )}
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 shadow-sm">
