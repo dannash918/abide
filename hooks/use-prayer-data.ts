@@ -59,9 +59,9 @@ export function usePrayerData() {
     if (!user) return false
 
     try {
-      const success = await DatabaseService.deleteTopic(topicId, user.id)
+      const success = await DatabaseService.updateTopic(topicId, name, user.id)
       if (success) {
-        await loadPrayerData() // Reload data
+        await loadPrayerData()
       }
       return success
     } catch (err) {
@@ -92,6 +92,7 @@ export function usePrayerData() {
 
   // Delete a prayer point
   const deletePrayerPoint = useCallback(async (
+    updateTopic,
     topicId: string,
     pointId: string
   ): Promise<boolean> => {

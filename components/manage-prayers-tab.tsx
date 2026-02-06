@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Trash2, Loader2, Edit, Download } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import EditTopicModal from "@/components/edit-topic-modal"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
@@ -26,8 +27,9 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     createPrayerPoint,
     deletePrayerPoint,
     createTopicWithPrayerPoint,
-    updatePrayerPoint
-    , refreshData
+    updatePrayerPoint,
+    updateTopic,
+    refreshData
   } = usePrayerData()
 
   const [editingPoint, setEditingPoint] = useState<{ topicId: string; pointId: string } | null>(null)
@@ -42,6 +44,11 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [modalTopicName, setModalTopicName] = useState("")
   const [modalPrayerPoint, setModalPrayerPoint] = useState("")
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
+  const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
+  const [editingTopicName, setEditingTopicName] = useState("")
+  const [editingPoints, setEditingPoints] = useState<Array<{ id?: string; text: string }>>([])
+  const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isInstallable, setIsInstallable] = useState(false)
 
@@ -242,19 +249,23 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">{topic.name}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteTopic(topic.id)}
-                    disabled={isSubmitting}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingTopicId(topic.id)
+                        setEditingTopicName(topic.name)
+                        setEditingPoints(topic.prayerPoints.map(p => ({ id: p.id, text: p.text })))
+                        setRemovedPointIds([])
+                        setIsTopicModalOpen(true)
+                      }}
+                      aria-label={`Edit topic ${topic.name}`}
+                      className="h-8 w-8"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -302,47 +313,14 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                               >
                                 Cancel
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  setIsSubmitting(true)
-                                  const success = await deletePrayerPoint(topic.id, point.id)
-                                  setIsSubmitting(false)
-                                  if (success) {
-                                    setEditingPoint(null)
-                                    setEditingText("")
-                                  } else {
-                                    console.error('Failed to delete prayer point')
-                                  }
-                                }}
-                                aria-label={`Delete prayer point ${index + 1}`}
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                {isSubmitting ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-3 h-3" />
-                                )}
-                              </Button>
+                              {/* deletion moved into topic edit modal */}
                             </div>
                           </div>
                         ) : (
                           <>
                             <p className="flex-1 text-sm leading-relaxed">{point.text}</p>
                             <div className="flex gap-2 ml-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setEditingPoint({ topicId: topic.id, pointId: point.id })
-                                  setEditingText(point.text)
-                                }}
-                                aria-label={`Edit prayer point ${index + 1}`}
-                                className="h-8 w-8"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
+                              {/* deletion moved into topic edit modal */}
                             </div>
                           </>
                         )}
@@ -385,6 +363,28 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditTopicModal
+        open={isTopicModalOpen}
+        onOpenChange={(open) => {
+          setIsTopicModalOpen(open)
+          if (!open) {
+            setEditingTopicId(null)
+            setEditingTopicName("")
+            setEditingPoints([])
+            setRemovedPointIds([])
+          }
+        }}
+        topicId={editingTopicId}
+        initialTopicName={editingTopicName}
+        initialPoints={editingPoints}
+        updateTopic={async (id, name) => { const res = await updateTopic(id, name); return res }}
+        deletePrayerPoint={async (tId, pId) => { const res = await deletePrayerPoint(tId, pId); return res }}
+        updatePrayerPoint={async (pId, text) => { const res = await updatePrayerPoint(pId, text); return res }}
+        createPrayerPoint={async (text, tId) => { const res = await createPrayerPoint(text, tId); return res }}
+        deleteTopic={async (tId) => { const res = await deleteTopic(tId); return res }}
+        refreshData={async () => { await refreshData() }}
+      />
 
       {/* Floating add button */}
       <Button
