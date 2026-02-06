@@ -17,6 +17,7 @@ export interface DatabasePrayerPoint {
   user_id: string
   created_at: string
   updated_at: string
+  last_prayed_for?: string | null
 }
 
 // Convert database types to app types
@@ -43,6 +44,7 @@ export function convertDatabaseToApp(
         id: point.id,
         text: point.text,
         topicName: topic.name
+        ,last_prayed_for: point.last_prayed_for || undefined
       })
     }
   })
@@ -84,11 +86,14 @@ export class DatabaseService {
 
       if (topicsError) throw topicsError
 
-      // Fetch prayer points
+      // Fetch prayer points, grouped by topic and preferring those never prayed (null) or prayed longest-ago
+      // Order by topic_id first so rows for each topic are contiguous, then by last_prayed_for (nulls first), then created_at
       const { data: prayerPoints, error: pointsError } = await supabase
         .from('prayer_points')
         .select('*')
         .eq('user_id', userId)
+        .order('topic_id', { ascending: true })
+        .order('last_prayed_for', { ascending: true, nulls: 'first' })
         .order('created_at', { ascending: true })
 
       if (pointsError) throw pointsError

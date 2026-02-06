@@ -109,3 +109,6 @@ CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
 -- Insert some sample data (optional - remove if you don't want sample data)
 -- Note: This will only work after a user is created, so you might want to skip this
 -- or run it manually after creating your first user account
+
+-- Add last_prayed_for column to prayer_points table
+ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS last_prayed_for TIMESTAMP WITH TIME ZONE;

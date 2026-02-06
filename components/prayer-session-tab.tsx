@@ -317,9 +317,43 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           silenceOption={silenceOption}
           calculatedPauseDuration={calculatedPauseDuration}
           voiceType={voiceType}
-          onStop={() => {
-            setIsPlaying(false)
-            setCurrentTopics([])
+          onStop={async () => {
+            try {
+              // Collect all prayer point ids from the current session topics
+              const ids: string[] = []
+              currentTopics.forEach(t => {
+                t.prayerPoints.forEach(p => {
+                  if (p.id) ids.push(p.id)
+                })
+              })
+
+              // Only UUIDs are stored in the DB; filter out local/static IDs (e.g. 'lords-prayer-1')
+              const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+              const validIds = ids.filter(id => uuidRegex.test(id))
+              const invalidIds = ids.filter(id => !uuidRegex.test(id))
+              if (invalidIds.length > 0) {
+                console.warn('Skipping non-UUID prayer point ids when updating last_prayed_for:', invalidIds)
+              }
+
+              if (validIds.length > 0) {
+                // Update last_prayed_for to now() for all prayer points in this session
+                const nowIso = new Date().toISOString()
+                const { error } = await supabase
+                  .from('prayer_points')
+                  .update({ last_prayed_for: nowIso })
+                  .in('id', validIds)
+
+                if (error) {
+                  console.warn('Failed to update last_prayed_for for prayer points:', error)
+                }
+              }
+            } catch (e) {
+              console.warn('Error updating last_prayed_for:', e)
+            } finally {
+              setIsPlaying(false)
+              setCurrentTopics([])
+              console.log("Updated!")
+            }
           }}
         />
       ) : (

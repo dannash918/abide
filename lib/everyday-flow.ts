@@ -1,5 +1,6 @@
 import { Topic } from "./types";
-import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints, getYourPrayers } from "./included-topics";
+import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints } from "./included-topics";
+import { selectTopicsByOldestPoint } from "./topic-selection";
 import type { PrayerData } from "./types";
 
 // Function to get the everyday flow with user prayer count
@@ -11,6 +12,9 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
       ...point,
       topicName: topic.name,
     }))
+
+    // The database returns prayer points ordered by `topic_id` then `last_prayed_for`,
+    // so we rely on the server-side ordering and simply group them here.
     grouped[topic.name] = pointsWithTopic
   })
 
@@ -33,7 +37,7 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
       name: 'Confession',
       prayerPoints: getConfessionPoints()
     },
-    ...getYourPrayers(availableUserTopics, userPrayerCount).map(topicName => ({
+    ...selectTopicsByOldestPoint(grouped, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
       name: topicName,
       customSpeechHeader: "Pray for " + topicName,
@@ -62,6 +66,9 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
       ...point,
       topicName: topic.name,
     }))
+
+    // The database returns prayer points ordered by `topic_id` then `last_prayed_for`,
+    // so we rely on the server-side ordering and simply group them here.
     grouped[topic.name] = pointsWithTopic
   })
 
@@ -74,7 +81,7 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
       customSpeechHeader: "Let's Abide",
       prayerPoints: getAbidePoints()
     },
-    ...getYourPrayers(availableUserTopics, userPrayerCount).map(topicName => ({
+    ...selectTopicsByOldestPoint(grouped, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
       name: topicName,
       customSpeechHeader: "Pray for " + topicName,

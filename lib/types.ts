@@ -3,6 +3,7 @@ export interface PrayerPoint {
   text: string
   topicName?: string
   verseReference?: string
+  last_prayed_for?: string
 }
 
 export interface Topic {
