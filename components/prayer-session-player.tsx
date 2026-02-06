@@ -908,12 +908,7 @@ export function PrayerSessionPlayer({
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className={`font-semibold text-sm mt-1 min-w-[2rem] ${
-                      currentlyReadingIndex === index ? "text-primary" : "text-primary"
-                    }`}>
-                      {index + 1}.
-                    </span>
-                    <p className={`leading-relaxed ${point.id === 'lords-prayer-1' ? 'whitespace-pre-line' : ''}`}>
+                    <p className={`leading-relaxed flex-1 ${point.id === 'lords-prayer-1' ? 'whitespace-pre-line' : ''}`}>
                       {point.text}
                       {point.verseReference && (
                         <span className={`${isFullscreen ? "text-sm" : "text-xs"} text-muted-foreground block mt-2`}>
