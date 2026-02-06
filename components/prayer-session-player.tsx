@@ -14,7 +14,7 @@ interface PrayerSessionPlayerProps {
   selectedFlow: PrayerFlow
   silenceOption: string
   calculatedPauseDuration: string
-  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader"
+  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none"
   onStop: () => void
 }
 
@@ -119,6 +119,8 @@ export function PrayerSessionPlayer({
 
   // Speak text and return a promise that resolves when speaking completes (or is cancelled)
   const speakText = async (text: string): Promise<void> => {
+    // If user selected "No Voice", skip speaking entirely
+    if (voiceType === 'none') return
     // If muted or paused/cancelled, resolve immediately
     if (cancellationRef.current.cancelled || pauseRef.current.paused || isMuted) return
 
@@ -577,7 +579,10 @@ export function PrayerSessionPlayer({
             // announcementPromise resolves when the announcement audio completes (or fallback completes)
             let announcementPromise: Promise<void> = Promise.resolve()
 
-            if (voiceType === "rachel" || voiceType === "maysie") {
+            // If user selected No Voice, skip any announcement audio
+            if (voiceType === 'none') {
+              announcementPromise = Promise.resolve()
+            } else if (voiceType === "rachel" || voiceType === "maysie") {
               try {
                 const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
                 announcementPromise = (async () => {

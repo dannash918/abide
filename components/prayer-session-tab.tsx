@@ -48,7 +48,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const { prayerData, loading, error } = usePrayerData()
   const [selectedTotalTime, setSelectedTotalTime] = useState("10")
   const [calculatedPauseDuration, setCalculatedPauseDuration] = useState("30")
-  const [voiceType, setVoiceType] = useState<"rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader">("polly")
+  const [voiceType, setVoiceType] = useState<"rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none">("polly")
   const [silencePreference, setSilencePreference] = useState<string>("automatic")
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [topicCountPreference, setTopicCountPreference] = useState<string>("automatic")
@@ -245,7 +245,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
           if (data && !error) {
             // Set UI state from saved settings
-            setVoiceType(data.voice_type as "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader")
+            setVoiceType(data.voice_type as "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none")
             setSilencePreference(data.silence_preference)
             setTopicCountPreference(data.topic_count_preference)
 

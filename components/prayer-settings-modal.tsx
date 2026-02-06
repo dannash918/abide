@@ -11,8 +11,8 @@ import { supabase } from "@/lib/supabase"
 type PrayerSettingsModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader"
-  setVoiceType: (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader") => void
+  voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none"
+  setVoiceType: (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none") => void
   silencePreference: string
   setSilencePreference: (value: string) => void
   topicCountPreference: string
@@ -32,7 +32,7 @@ export function PrayerSettingsModal({
   const [isPlayingSample, setIsPlayingSample] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
 
-  const playSampleVoice = async (selectedVoice: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader") => {
+  const playSampleVoice = async (selectedVoice: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none") => {
     if (isPlayingSample) return
 
     const sampleText = "Abide in Me, and I will Abide in you."
@@ -40,6 +40,10 @@ export function PrayerSettingsModal({
     setIsPlayingSample(true)
 
     try {
+      if (selectedVoice === 'none') {
+        // No voice selected; don't play a sample
+        return
+      }
       if (selectedVoice === "rachel") {
         const response = await fetch(`/api/tts?text=${encodeURIComponent(sampleText)}&provider=rachel`)
         if (response.ok) {
@@ -139,7 +143,7 @@ export function PrayerSettingsModal({
     }
   }
 
-  const handleVoiceChange = (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader") => {
+  const handleVoiceChange = (value: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none") => {
     setVoiceType(value)
   }
 
@@ -165,6 +169,7 @@ export function PrayerSettingsModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No Voice</SelectItem>
                   <SelectItem value="polly">Ruth</SelectItem>
                   <SelectItem value="danielle">Danielle</SelectItem>
                   <SelectItem value="amy">Amy</SelectItem>
