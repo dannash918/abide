@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Trash2, Loader2, Edit, Download } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
@@ -26,6 +27,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     deletePrayerPoint,
     createTopicWithPrayerPoint,
     updatePrayerPoint
+    , refreshData
   } = usePrayerData()
 
   const [editingPoint, setEditingPoint] = useState<{ topicId: string; pointId: string } | null>(null)
@@ -36,6 +38,10 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [newTopicName, setNewTopicName] = useState("")
   const [isCreatingNewTopic, setIsCreatingNewTopic] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [modalTopicName, setModalTopicName] = useState("")
+  const [modalPrayerPoint, setModalPrayerPoint] = useState("")
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isInstallable, setIsInstallable] = useState(false)
 
@@ -139,6 +145,34 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     }
   }
 
+  const handleModalSubmit = async () => {
+    const topicName = modalTopicName.trim()
+    const pointText = modalPrayerPoint.trim()
+    if (!topicName || !pointText) return
+
+    setIsSubmitting(true)
+    try {
+      const existing = prayerData.topics.find(t => t.name.toLowerCase() === topicName.toLowerCase())
+      let success = false
+      if (existing) {
+        success = await createPrayerPoint(pointText, existing.id)
+      } else {
+        success = await createTopicWithPrayerPoint(topicName, pointText)
+      }
+
+      if (success) {
+        setModalTopicName("")
+        setModalPrayerPoint("")
+        setIsAddModalOpen(false)
+        try { await refreshData() } catch (e) { /* ignore */ }
+      } else {
+        console.error('Failed to add from modal')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -176,91 +210,14 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         </Card>
       )}
 
-      {/* Add Prayer Point Section */}
+      {/* Search bar */}
       <Card className="border-primary/20 bg-card/50 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="text-2xl">Add New Prayer Point</CardTitle>
-          <CardDescription>Add a prayer point and assign it to a topic</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="prayer-point">Prayer Point</Label>
-            <Textarea
-              id="prayer-point"
-              placeholder="Enter your prayer point..."
-              value={newPrayerPoint}
-              onChange={(e) => setNewPrayerPoint(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="topic-select">Topic</Label>
-            <Select
-              value={isCreatingNewTopic ? "new" : selectedTopicId || ""}
-              onValueChange={(value) => {
-                if (value === "new") {
-                  setIsCreatingNewTopic(true)
-                  setSelectedTopicId(null)
-                } else {
-                  setIsCreatingNewTopic(false)
-                  setSelectedTopicId(value)
-                }
-              }}
-            >
-              <SelectTrigger id="topic-select">
-                <SelectValue placeholder="Select or create a topic" />
-              </SelectTrigger>
-              <SelectContent>
-                {prayerData.topics.map((topic) => (
-                  <SelectItem key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="new">+ Create New Topic</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isCreatingNewTopic && (
-            <div className="space-y-2">
-              <Label htmlFor="new-topic">New Topic Name</Label>
-              <Input
-                id="new-topic"
-                placeholder="e.g., Family, Health, Work"
-                value={newTopicName}
-                onChange={(e) => setNewTopicName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddPrayerPointWithNewTopic()}
-              />
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button 
-              onClick={isCreatingNewTopic ? handleAddPrayerPointWithNewTopic : handleAddPrayerPoint} 
-              disabled={!newPrayerPoint.trim() || (!selectedTopicId && !isCreatingNewTopic) || (isCreatingNewTopic && !newTopicName.trim()) || isSubmitting}
-              className="flex-1"
-            >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              {isSubmitting ? "Adding..." : "Add Prayer Point"}
-            </Button>
-            {(selectedTopicId || isCreatingNewTopic) && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSelectedTopicId(null)
-                  setIsCreatingNewTopic(false)
-                  setNewTopicName("")
-                }}
-              >
-                Cancel
-              </Button>
-            )}
-          </div>
+        <CardContent className="flex items-center gap-3">
+          <Input
+            placeholder="Search topics or prayer points..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </CardContent>
       </Card>
 
@@ -273,7 +230,14 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {prayerData.topics.map((topic) => (
+          {prayerData.topics
+            .filter(topic => {
+              const q = searchTerm.trim().toLowerCase()
+              if (!q) return true
+              if (topic.name.toLowerCase().includes(q)) return true
+              return topic.prayerPoints.some(p => p.text.toLowerCase().includes(q))
+            })
+            .map((topic) => (
             <Card key={topic.id} className="border-primary/10 bg-card/50 backdrop-blur">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -391,6 +355,44 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
           ))}
         </div>
       )}
+      {/* Add Topic+Point Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Topic and Prayer Point</DialogTitle>
+            <DialogDescription>Enter a topic name (existing or new) and a prayer point.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Topic Name</Label>
+              <Input value={modalTopicName} onChange={(e) => setModalTopicName(e.target.value)} placeholder="Topic name" />
+            </div>
+            <div className="space-y-2">
+              <Label>Prayer Point</Label>
+              <Textarea value={modalPrayerPoint} onChange={(e) => setModalPrayerPoint(e.target.value)} className="min-h-[120px]" />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleModalSubmit} disabled={isSubmitting || !modalTopicName.trim() || !modalPrayerPoint.trim()}>
+                {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                Add
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating add button */}
+      <Button
+        onClick={() => setIsAddModalOpen(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
     </div>
   )
 }
