@@ -6,6 +6,7 @@ export interface DatabaseTopic {
   id: string
   name: string
   user_id: string
+  themes?: string[] | null
   created_at: string
   updated_at: string
 }
@@ -32,7 +33,8 @@ export function convertDatabaseToApp(
     topicsMap.set(topic.id, {
       id: topic.id,
       name: topic.name,
-      prayerPoints: []
+      prayerPoints: [],
+      themes: topic.themes || []
     })
   })
   
@@ -43,8 +45,8 @@ export function convertDatabaseToApp(
       topic.prayerPoints.push({
         id: point.id,
         text: point.text,
-        topicName: topic.name
-        ,last_prayed_for: point.last_prayed_for || undefined
+        topicName: topic.name,
+        last_prayed_for: point.last_prayed_for || undefined
       })
     }
   })
@@ -62,7 +64,8 @@ export function convertAppToDatabase(topic: Topic, userId: string): {
   return {
     topic: {
       name: topic.name,
-      user_id: userId
+      user_id: userId,
+      themes: topic.themes || []
     },
     prayerPoints: topic.prayerPoints.map(point => ({
       text: point.text,
@@ -106,11 +109,11 @@ export class DatabaseService {
   }
 
   // Create a new topic
-  static async createTopic(name: string, userId: string): Promise<string | null> {
+  static async createTopic(name: string, userId: string, themes: string[] = []): Promise<string | null> {
     try {
       const { data, error } = await supabase
         .from('topics')
-        .insert({ name, user_id: userId })
+        .insert({ name, user_id: userId, themes })
         .select('id')
         .single()
 
@@ -123,11 +126,11 @@ export class DatabaseService {
   }
 
   // Update a topic
-  static async updateTopic(topicId: string, name: string, userId: string): Promise<boolean> {
+  static async updateTopic(topicId: string, name: string, userId: string, themes: string[] = []): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('topics')
-        .update({ name })
+        .update({ name, themes })
         .eq('id', topicId)
         .eq('user_id', userId)
 
@@ -219,11 +222,12 @@ export class DatabaseService {
   static async createTopicWithPrayerPoint(
     topicName: string,
     prayerPointText: string,
-    userId: string
+    userId: string,
+    themes: string[] = []
   ): Promise<{ topicId: string | null; pointId: string | null }> {
     try {
       // Create topic first
-      const topicId = await this.createTopic(topicName, userId)
+      const topicId = await this.createTopic(topicName, userId, themes)
       if (!topicId) return { topicId: null, pointId: null }
 
       // Create prayer point
@@ -241,4 +245,3 @@ export class DatabaseService {
     }
   }
 }
-

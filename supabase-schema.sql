@@ -112,3 +112,5 @@ CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
 
 -- Add last_prayed_for column to prayer_points table
 ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS last_prayed_for TIMESTAMP WITH TIME ZONE;
+-- Add themes column to topics (array of text tags)
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS themes TEXT[] DEFAULT '{}';

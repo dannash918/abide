@@ -16,17 +16,19 @@ interface Props {
   topicId: string | null
   initialTopicName: string
   initialPoints: Point[]
-  updateTopic: (topicId: string, name: string) => Promise<boolean>
+  initialTopicThemes?: string[]
+  updateTopic: (topicId: string, name: string, themes?: string[]) => Promise<boolean>
   deletePrayerPoint: (topicId: string, pointId: string) => Promise<boolean>
   updatePrayerPoint: (pointId: string, text: string) => Promise<boolean>
-  createPrayerPoint: (text: string, topicId: string) => Promise<boolean>
+  createPrayerPoint: (text: string, tId: string) => Promise<boolean>
   deleteTopic: (topicId: string) => Promise<boolean>
   refreshData: () => Promise<void>
 }
 
-export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, initialPoints, updateTopic, deletePrayerPoint, updatePrayerPoint, createPrayerPoint, deleteTopic, refreshData }: Props) {
+export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, initialPoints, initialTopicThemes, updateTopic, deletePrayerPoint, updatePrayerPoint, createPrayerPoint, deleteTopic, refreshData }: Props) {
   const [topicName, setTopicName] = useState(initialTopicName)
   const [points, setPoints] = useState<Point[]>(initialPoints)
+  const [topicThemes, setTopicThemes] = useState<string[]>([])
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -38,8 +40,10 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
       setPoints(initialPoints)
       setRemovedPointIds([])
       setEditingIndex(null)
+      setTopicThemes(initialTopicThemes || [])
     }
   }, [open, topicId, initialTopicName, initialPoints])
+
 
   const handleAddPoint = () => {
     setPoints(prev => [...prev, { text: "" }])
@@ -63,7 +67,7 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
     setIsSubmitting(true)
     try {
       if (topicName.trim()) {
-        await updateTopic(topicId, topicName.trim())
+        await updateTopic(topicId, topicName.trim(), topicThemes)
       }
 
       // delete removed points
@@ -114,7 +118,17 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
             <Input value={topicName} onChange={(e) => setTopicName(e.target.value)} placeholder="Topic name" />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Themes</Label>
+              <div className="text-sm text-muted-foreground">Topic-level themes (comma-separated). Used for grouping and filters.</div>
+              <Input
+                value={topicThemes.join(', ')}
+                onChange={(e) => setTopicThemes(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                placeholder="e.g. family, work, health"
+              />
+            </div>
+
             <Label>Prayer Points</Label>
             <div className="space-y-2">
               {points.map((pt, idx) => (

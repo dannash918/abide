@@ -44,10 +44,12 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [modalTopicName, setModalTopicName] = useState("")
   const [modalPrayerPoint, setModalPrayerPoint] = useState("")
+  const [modalPrayerThemes, setModalPrayerThemes] = useState("")
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
   const [editingTopicName, setEditingTopicName] = useState("")
   const [editingPoints, setEditingPoints] = useState<Array<{ id?: string; text: string }>>([])
+  const [editingTopicThemes, setEditingTopicThemes] = useState<string[]>([])
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isInstallable, setIsInstallable] = useState(false)
@@ -113,6 +115,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     if (!newPrayerPoint.trim() || !selectedTopicId) return
 
     setIsSubmitting(true)
+    // No themes provided in this inline flow
     const success = await createPrayerPoint(newPrayerPoint, selectedTopicId)
     setIsSubmitting(false)
     
@@ -155,6 +158,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const handleModalSubmit = async () => {
     const topicName = modalTopicName.trim()
     const pointText = modalPrayerPoint.trim()
+    const themes = modalPrayerThemes.split(',').map(t => t.trim()).filter(Boolean)
     if (!topicName || !pointText) return
 
     setIsSubmitting(true)
@@ -162,9 +166,11 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
       const existing = prayerData.topics.find(t => t.name.toLowerCase() === topicName.toLowerCase())
       let success = false
       if (existing) {
+        // If themes provided, update topic themes
+        if (themes.length > 0) await updateTopic(existing.id, existing.name, themes)
         success = await createPrayerPoint(pointText, existing.id)
       } else {
-        success = await createTopicWithPrayerPoint(topicName, pointText)
+        success = await createTopicWithPrayerPoint(topicName, pointText, themes)
       }
 
       if (success) {
@@ -257,6 +263,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                         setEditingTopicId(topic.id)
                         setEditingTopicName(topic.name)
                         setEditingPoints(topic.prayerPoints.map(p => ({ id: p.id, text: p.text })))
+                        setEditingTopicThemes(topic.themes || [])
                         setRemovedPointIds([])
                         setIsTopicModalOpen(true)
                       }}
@@ -291,7 +298,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                                 onClick={async () => {
                                   if (!editingText.trim()) return
                                   setIsSubmitting(true)
-                                  const success = await updatePrayerPoint(point.id, editingText.trim())
+                                  const success = await updatePrayerPoint(point.id, editingText.trim(), [])
                                   setIsSubmitting(false)
                                   if (success) {
                                     setEditingPoint(null)
@@ -350,6 +357,10 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
               <Label>Prayer Point</Label>
               <Textarea value={modalPrayerPoint} onChange={(e) => setModalPrayerPoint(e.target.value)} className="min-h-[120px]" />
             </div>
+            <div className="space-y-2">
+              <Label>Themes (comma-separated)</Label>
+              <Input value={modalPrayerThemes} onChange={(e) => setModalPrayerThemes(e.target.value)} placeholder="e.g. family, work, health" />
+            </div>
           </div>
 
           <DialogFooter>
@@ -373,12 +384,14 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
             setEditingTopicName("")
             setEditingPoints([])
             setRemovedPointIds([])
+            setEditingTopicThemes([])
           }
         }}
         topicId={editingTopicId}
         initialTopicName={editingTopicName}
         initialPoints={editingPoints}
-        updateTopic={async (id, name) => { const res = await updateTopic(id, name); return res }}
+        initialTopicThemes={editingTopicThemes}
+        updateTopic={async (id, name, themes) => { const res = await updateTopic(id, name, themes); return res }}
         deletePrayerPoint={async (tId, pId) => { const res = await deletePrayerPoint(tId, pId); return res }}
         updatePrayerPoint={async (pId, text) => { const res = await updatePrayerPoint(pId, text); return res }}
         createPrayerPoint={async (text, tId) => { const res = await createPrayerPoint(text, tId); return res }}
