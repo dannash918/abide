@@ -114,3 +114,38 @@ CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
 ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS last_prayed_for TIMESTAMP WITH TIME ZONE;
 -- Add themes column to topics (array of text tags)
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS themes TEXT[] DEFAULT '{}';
+-- ================================
+-- Scheduling fields (NO specific dates)
+-- ================================
+
+-- Type of recurrence
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS recurrence_type VARCHAR(20) 
+CHECK (recurrence_type IN ('none', 'daily', 'weekly', 'interval'))
+DEFAULT 'none';
+
+-- For weekly schedules (0 = Sunday, 6 = Saturday)
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS weekly_day INTEGER 
+CHECK (weekly_day BETWEEN 0 AND 6);
+
+-- For interval schedules (every X days)
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS interval_days INTEGER 
+CHECK (interval_days > 0);
+
+-- Start date for recurrence
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS start_date DATE;
+
+-- Optional end date
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS end_date DATE;
+
+-- Time of day (e.g. 07:30)
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS time_of_day TIME;
+
+-- Timezone
+ALTER TABLE topics 
+ADD COLUMN IF NOT EXISTS timezone VARCHAR(100) DEFAULT 'Australia/Sydney';

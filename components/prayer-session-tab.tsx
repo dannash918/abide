@@ -71,10 +71,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       // Scale: 5min=1 topics, 8min=2 topics, 10min=3 topics, 12min=4 topics, 15min=5 topics, 20min=7 topics
       if (minutes <= 5) return 1
       if (minutes <= 8) return 2
-      if (minutes <= 10) return 3
-      if (minutes <= 12) return 4
-      if (minutes <= 15) return 5
-      if (minutes <= 20) return 7
+      if (minutes <= 10) return 4
+      if (minutes <= 12) return 5
+      if (minutes <= 15) return 7
+      if (minutes <= 20) return 9
       return 5
     }
 
@@ -93,10 +93,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     // Fallback: use the everyday mapping
     if (minutes <= 5) return 1
     if (minutes <= 8) return 2
-    if (minutes <= 10) return 3
-    if (minutes <= 12) return 4
-    if (minutes <= 15) return 5
-    if (minutes <= 20) return 7
+    if (minutes <= 10) return 4
+    if (minutes <= 12) return 5
+    if (minutes <= 15) return 7
+    if (minutes <= 20) return 8
     return 5
   }
 

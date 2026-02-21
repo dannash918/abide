@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Trash2, Loader2, Edit } from "lucide-react"
 
@@ -17,7 +18,8 @@ interface Props {
   initialTopicName: string
   initialPoints: Point[]
   initialTopicThemes?: string[]
-  updateTopic: (topicId: string, name: string, themes?: string[]) => Promise<boolean>
+  initialTopicRecurrence?: string | null
+  updateTopic: (topicId: string, name: string, themes?: string[], recurrence?: string | null) => Promise<boolean>
   deletePrayerPoint: (topicId: string, pointId: string) => Promise<boolean>
   updatePrayerPoint: (pointId: string, text: string) => Promise<boolean>
   createPrayerPoint: (text: string, tId: string) => Promise<boolean>
@@ -25,10 +27,11 @@ interface Props {
   refreshData: () => Promise<void>
 }
 
-export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, initialPoints, initialTopicThemes, updateTopic, deletePrayerPoint, updatePrayerPoint, createPrayerPoint, deleteTopic, refreshData }: Props) {
+export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, initialPoints, initialTopicThemes, initialTopicRecurrence, updateTopic, deletePrayerPoint, updatePrayerPoint, createPrayerPoint, deleteTopic, refreshData }: Props) {
   const [topicName, setTopicName] = useState(initialTopicName)
   const [points, setPoints] = useState<Point[]>(initialPoints)
   const [topicThemes, setTopicThemes] = useState<string[]>([])
+  const [topicRecurrence, setTopicRecurrence] = useState<string | null>(null)
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,6 +44,7 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
       setRemovedPointIds([])
       setEditingIndex(null)
       setTopicThemes(initialTopicThemes || [])
+      setTopicRecurrence(initialTopicRecurrence || null)
     }
   }, [open, topicId, initialTopicName, initialPoints])
 
@@ -67,7 +71,7 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
     setIsSubmitting(true)
     try {
       if (topicName.trim()) {
-        await updateTopic(topicId, topicName.trim(), topicThemes)
+        await updateTopic(topicId, topicName.trim(), topicThemes, topicRecurrence)
       }
 
       // delete removed points
@@ -127,6 +131,21 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
                 onChange={(e) => setTopicThemes(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
                 placeholder="e.g. family, work, health"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Recurrence</Label>
+              <Select value={topicRecurrence || undefined} onValueChange={(v) => setTopicRecurrence(v || null)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  {/* <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem> */}
+                </SelectContent>
+              </Select>
             </div>
 
             <Label>Prayer Points</Label>

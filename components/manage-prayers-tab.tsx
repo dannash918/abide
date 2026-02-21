@@ -45,11 +45,13 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [modalTopicName, setModalTopicName] = useState("")
   const [modalPrayerPoint, setModalPrayerPoint] = useState("")
   const [modalPrayerThemes, setModalPrayerThemes] = useState("")
+  const [modalTopicRecurrence, setModalTopicRecurrence] = useState<string | null>(null)
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
   const [editingTopicName, setEditingTopicName] = useState("")
   const [editingPoints, setEditingPoints] = useState<Array<{ id?: string; text: string }>>([])
   const [editingTopicThemes, setEditingTopicThemes] = useState<string[]>([])
+  const [editingTopicRecurrence, setEditingTopicRecurrence] = useState<string | null>(null)
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isInstallable, setIsInstallable] = useState(false)
@@ -166,16 +168,17 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
       const existing = prayerData.topics.find(t => t.name.toLowerCase() === topicName.toLowerCase())
       let success = false
       if (existing) {
-        // If themes provided, update topic themes
-        if (themes.length > 0) await updateTopic(existing.id, existing.name, themes)
+        // update themes and recurrence when provided
+        await updateTopic(existing.id, existing.name, themes, modalTopicRecurrence)
         success = await createPrayerPoint(pointText, existing.id)
       } else {
-        success = await createTopicWithPrayerPoint(topicName, pointText, themes)
+        success = await createTopicWithPrayerPoint(topicName, pointText, themes, modalTopicRecurrence)
       }
 
       if (success) {
         setModalTopicName("")
         setModalPrayerPoint("")
+        setModalTopicRecurrence(null)
         setIsAddModalOpen(false)
         try { await refreshData() } catch (e) { /* ignore */ }
       } else {
@@ -273,6 +276,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                         setEditingTopicName(topic.name)
                         setEditingPoints(topic.prayerPoints.map(p => ({ id: p.id, text: p.text })))
                         setEditingTopicThemes(topic.themes || [])
+                        setEditingTopicRecurrence(topic.recurrence || null)
                         setRemovedPointIds([])
                         setIsTopicModalOpen(true)
                       }}
@@ -370,6 +374,20 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
               <Label>Themes (comma-separated)</Label>
               <Input value={modalPrayerThemes} onChange={(e) => setModalPrayerThemes(e.target.value)} placeholder="e.g. family, work, health" />
             </div>
+            <div className="space-y-2">
+              <Label>Recurrence</Label>
+              <Select value={modalTopicRecurrence || undefined} onValueChange={(v) => setModalTopicRecurrence(v || null)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  {/* <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem> */}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>
@@ -400,7 +418,8 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         initialTopicName={editingTopicName}
         initialPoints={editingPoints}
         initialTopicThemes={editingTopicThemes}
-        updateTopic={async (id, name, themes) => { const res = await updateTopic(id, name, themes); return res }}
+        initialTopicRecurrence={editingTopicRecurrence}
+        updateTopic={async (id, name, themes, recurrence) => { const res = await updateTopic(id, name, themes, recurrence); return res }}
         deletePrayerPoint={async (tId, pId) => { const res = await deletePrayerPoint(tId, pId); return res }}
         updatePrayerPoint={async (pId, text) => { const res = await updatePrayerPoint(pId, text); return res }}
         createPrayerPoint={async (text, tId) => { const res = await createPrayerPoint(text, tId); return res }}

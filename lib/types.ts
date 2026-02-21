@@ -11,6 +11,7 @@ export interface Topic {
   name: string
   prayerPoints: PrayerPoint[]
   themes?: string[]
+  recurrence?: string
   customSpeechHeader?: string
 }
 

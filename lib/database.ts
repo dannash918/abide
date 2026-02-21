@@ -7,6 +7,7 @@ export interface DatabaseTopic {
   name: string
   user_id: string
   themes?: string[] | null
+  recurrence_type?: string | null
   created_at: string
   updated_at: string
 }
@@ -30,11 +31,12 @@ export function convertDatabaseToApp(
   
   // Create topics
   topics.forEach(topic => {
-    topicsMap.set(topic.id, {
+      topicsMap.set(topic.id, {
       id: topic.id,
       name: topic.name,
       prayerPoints: [],
-      themes: topic.themes || []
+      themes: topic.themes || [],
+      recurrence: topic.recurrence_type || undefined
     })
   })
   
@@ -65,7 +67,8 @@ export function convertAppToDatabase(topic: Topic, userId: string): {
     topic: {
       name: topic.name,
       user_id: userId,
-      themes: topic.themes || []
+      themes: topic.themes || [],
+      recurrence_type: topic.recurrence || null
     },
     prayerPoints: topic.prayerPoints.map(point => ({
       text: point.text,
@@ -109,11 +112,11 @@ export class DatabaseService {
   }
 
   // Create a new topic
-  static async createTopic(name: string, userId: string, themes: string[] = []): Promise<string | null> {
+  static async createTopic(name: string, userId: string, themes: string[] = [], recurrence: string | null = null): Promise<string | null> {
     try {
       const { data, error } = await supabase
         .from('topics')
-        .insert({ name, user_id: userId, themes })
+        .insert({ name, user_id: userId, themes, recurrence_type: recurrence })
         .select('id')
         .single()
 
@@ -126,11 +129,14 @@ export class DatabaseService {
   }
 
   // Update a topic
-  static async updateTopic(topicId: string, name: string, userId: string, themes: string[] = []): Promise<boolean> {
+  static async updateTopic(topicId: string, name: string, userId: string, themes: string[] = [], recurrence: string | null = null): Promise<boolean> {
     try {
+      const payload: any = { name, themes }
+      if (recurrence !== undefined) payload.recurrence_type = recurrence
+
       const { error } = await supabase
         .from('topics')
-        .update({ name, themes })
+        .update(payload)
         .eq('id', topicId)
         .eq('user_id', userId)
 
@@ -223,11 +229,20 @@ export class DatabaseService {
     topicName: string,
     prayerPointText: string,
     userId: string,
-    themes: string[] = []
+    themes: string[] = [],
+    recurrence: string | null = null
   ): Promise<{ topicId: string | null; pointId: string | null }> {
     try {
       // Create topic first
-      const topicId = await this.createTopic(topicName, userId, themes)
+      // createTopic helper doesn't accept recurrence param everywhere; insert topic here to include recurrence
+      const { data: topicData, error: topicError } = await supabase
+        .from('topics')
+        .insert({ name: topicName, user_id: userId, themes, recurrence_type: recurrence })
+        .select('id')
+        .single()
+
+      if (topicError) throw topicError
+      const topicId = topicData?.id
       if (!topicId) return { topicId: null, pointId: null }
 
       // Create prayer point

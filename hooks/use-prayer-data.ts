@@ -38,11 +38,11 @@ export function usePrayerData() {
   }, [loadPrayerData])
 
   // Create a new topic
-  const createTopic = useCallback(async (name: string, themes: string[] = []): Promise<boolean> => {
+  const createTopic = useCallback(async (name: string, themes: string[] = [], recurrence: string | null = null): Promise<boolean> => {
     if (!user) return false
 
     try {
-      const topicId = await DatabaseService.createTopic(name, user.id, themes)
+      const topicId = await DatabaseService.createTopic(name, user.id, themes, recurrence)
       if (topicId) {
         await loadPrayerData() // Reload data
         return true
@@ -128,7 +128,8 @@ export function usePrayerData() {
   const createTopicWithPrayerPoint = useCallback(async (
     topicName: string,
     prayerPointText: string
-    , themes: string[] = []
+    , themes: string[] = [],
+    recurrence: string | null = null
   ): Promise<boolean> => {
     if (!user) return false
 
@@ -137,7 +138,8 @@ export function usePrayerData() {
         topicName,
         prayerPointText,
         user.id,
-        themes
+        themes,
+        recurrence
       )
       if (topicId && pointId) {
         await loadPrayerData() // Reload data
@@ -159,10 +161,10 @@ export function usePrayerData() {
     createPrayerPoint,
     deletePrayerPoint,
     createTopicWithPrayerPoint,
-    updateTopic: async (topicId: string, name: string, themes: string[] = []) => {
+    updateTopic: async (topicId: string, name: string, themes: string[] = [], recurrence: string | null = null) => {
       if (!user) return false
       try {
-        const success = await DatabaseService.updateTopic(topicId, name, user.id, themes)
+        const success = await DatabaseService.updateTopic(topicId, name, user.id, themes, recurrence)
         if (success) await loadPrayerData()
         return success
       } catch (err) {

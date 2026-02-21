@@ -8,13 +8,25 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
   // Group user prayer points by topic
   const grouped: { [topicName: string]: any[] } = {}
   prayerData.topics.forEach((topic) => {
-    const pointsWithTopic = topic.prayerPoints.map((point) => ({
+    const rawPoints = Array.isArray(topic.prayerPoints) ? topic.prayerPoints : []
+    const pointsWithTopic = rawPoints.map((point) => ({
       ...point,
       topicName: topic.name,
     }))
 
-    // The database returns prayer points ordered by `topic_id` then `last_prayed_for`,
-    // so we rely on the server-side ordering and simply group them here.
+    // Ensure per-topic ordering: unprayed (null) first, then by oldest last_prayed_for
+    if (typeof pointsWithTopic.sort === 'function') {
+      pointsWithTopic.sort((a, b) => {
+        if (!a.last_prayed_for && b.last_prayed_for) return -1
+        if (!b.last_prayed_for && a.last_prayed_for) return 1
+        if (!a.last_prayed_for && !b.last_prayed_for) return 0
+        return new Date(a.last_prayed_for!).getTime() - new Date(b.last_prayed_for!).getTime()
+      })
+    }
+
+    // Attach topic recurrence for selection priority
+    ;(pointsWithTopic as any).recurrence = topic.recurrence
+
     grouped[topic.name] = pointsWithTopic
   })
 
@@ -62,13 +74,25 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
   // Group user prayer points by topic
   const grouped: { [topicName: string]: any[] } = {}
   prayerData.topics.forEach((topic) => {
-    const pointsWithTopic = topic.prayerPoints.map((point) => ({
+    const rawPoints = Array.isArray(topic.prayerPoints) ? topic.prayerPoints : []
+    const pointsWithTopic = rawPoints.map((point) => ({
       ...point,
       topicName: topic.name,
     }))
 
-    // The database returns prayer points ordered by `topic_id` then `last_prayed_for`,
-    // so we rely on the server-side ordering and simply group them here.
+    // Ensure per-topic ordering: unprayed (null) first, then by oldest last_prayed_for
+    if (typeof pointsWithTopic.sort === 'function') {
+      pointsWithTopic.sort((a, b) => {
+        if (!a.last_prayed_for && b.last_prayed_for) return -1
+        if (!b.last_prayed_for && a.last_prayed_for) return 1
+        if (!a.last_prayed_for && !b.last_prayed_for) return 0
+        return new Date(a.last_prayed_for!).getTime() - new Date(b.last_prayed_for!).getTime()
+      })
+    }
+
+    // Attach topic recurrence for selection priority
+    ;(pointsWithTopic as any).recurrence = topic.recurrence
+
     grouped[topic.name] = pointsWithTopic
   })
 
