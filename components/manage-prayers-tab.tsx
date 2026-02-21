@@ -246,14 +246,28 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {prayerData.topics
-            .filter(topic => {
-              const q = searchTerm.trim().toLowerCase()
-              if (!q) return true
-              if (topic.name.toLowerCase().includes(q)) return true
-              return topic.prayerPoints.some(p => p.text.toLowerCase().includes(q))
-            })
-            .map((topic) => (
+          {(() => {
+            const q = searchTerm.trim().toLowerCase()
+            let filteredTopics = prayerData.topics
+            if (q) {
+              const topicMatches = prayerData.topics.filter(t => t.name.toLowerCase().includes(q))
+              const pointMatches = prayerData.topics.filter(t => !t.name.toLowerCase().includes(q) && t.prayerPoints.some(p => p.text.toLowerCase().includes(q)))
+
+              // Prefer topics whose name starts with the query (e.g. "Me" before "James")
+              topicMatches.sort((a, b) => {
+                const aName = a.name.toLowerCase()
+                const bName = b.name.toLowerCase()
+                const aStarts = aName.startsWith(q)
+                const bStarts = bName.startsWith(q)
+                if (aStarts && !bStarts) return -1
+                if (!aStarts && bStarts) return 1
+                return aName.localeCompare(bName)
+              })
+
+              filteredTopics = [...topicMatches, ...pointMatches]
+            }
+
+            return filteredTopics.map((topic) => (
             <Card key={topic.id} className="border-primary/10 bg-card/50 backdrop-blur">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -350,7 +364,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                 )}
               </CardContent>
             </Card>
-          ))}
+          ))})()}
         </div>
       )}
       {/* Add Topic+Point Modal */}
