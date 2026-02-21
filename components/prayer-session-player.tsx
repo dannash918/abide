@@ -876,7 +876,7 @@ export function PrayerSessionPlayer({
   }, [])
 
   return (
-    <div className={`${isFullscreen ? "fixed inset-0 bg-white flex flex-col items-center justify-center p-8 z-50" : "space-y-4"}`}>
+    <div className={`${isFullscreen ? "fixed inset-0 bg-white flex flex-col p-8 z-50" : "space-y-4"}`}>
       <div className={`${isFullscreen ? "absolute top-0 left-0 right-0" : "mb-4"}`}>
         <div className="w-full bg-secondary/30 h-1">
           <div
@@ -896,7 +896,8 @@ export function PrayerSessionPlayer({
         </button>
       )}
 
-      <div className={`${isFullscreen ? "max-w-4xl w-full" : ""}`}>
+      <div className={`${isFullscreen ? "flex-1 flex items-center justify-center pb-28" : ""}`}>
+        <div className={`${isFullscreen ? "max-w-4xl w-full" : ""}`}>
         {topicNames[currentTopicIndex] && (
           <div className="text-center mb-8">
             <h2 className={`${isFullscreen ? "text-3xl md:text-4xl" : "text-2xl"} text-primary font-bold mb-6`}>
@@ -932,6 +933,7 @@ export function PrayerSessionPlayer({
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Floating controls box (stays on top, bottom-centered) */}
