@@ -9,8 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, Trash2, Loader2, Edit, Download } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import EditTopicModal from "@/components/edit-topic-modal"
+import TopicModal from "@/components/topic-modal"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 
 interface ManagePrayersTabProps {
@@ -42,10 +41,6 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [modalTopicName, setModalTopicName] = useState("")
-  const [modalPrayerPoint, setModalPrayerPoint] = useState("")
-  const [modalPrayerThemes, setModalPrayerThemes] = useState("")
-  const [modalTopicRecurrence, setModalTopicRecurrence] = useState<string | null>(null)
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
   const [editingTopicName, setEditingTopicName] = useState("")
@@ -157,37 +152,6 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
     }
   }
 
-  const handleModalSubmit = async () => {
-    const topicName = modalTopicName.trim()
-    const pointText = modalPrayerPoint.trim()
-    const themes = modalPrayerThemes.split(',').map(t => t.trim()).filter(Boolean)
-    if (!topicName || !pointText) return
-
-    setIsSubmitting(true)
-    try {
-      const existing = prayerData.topics.find(t => t.name.toLowerCase() === topicName.toLowerCase())
-      let success = false
-      if (existing) {
-        // update themes and recurrence when provided
-        await updateTopic(existing.id, existing.name, themes, modalTopicRecurrence)
-        success = await createPrayerPoint(pointText, existing.id)
-      } else {
-        success = await createTopicWithPrayerPoint(topicName, pointText, themes, modalTopicRecurrence)
-      }
-
-      if (success) {
-        setModalTopicName("")
-        setModalPrayerPoint("")
-        setModalTopicRecurrence(null)
-        setIsAddModalOpen(false)
-        try { await refreshData() } catch (e) { /* ignore */ }
-      } else {
-        console.error('Failed to add from modal')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -325,7 +289,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                                 onClick={async () => {
                                   if (!editingText.trim()) return
                                   setIsSubmitting(true)
-                                  const success = await updatePrayerPoint(point.id, editingText.trim(), [])
+                                  const success = await updatePrayerPoint(point.id, editingText.trim())
                                   setIsSubmitting(false)
                                   if (success) {
                                     setEditingPoint(null)
@@ -367,56 +331,24 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
           ))})()}
         </div>
       )}
-      {/* Add Topic+Point Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Topic and Prayer Point</DialogTitle>
-            <DialogDescription>Enter a topic name (existing or new) and a prayer point.</DialogDescription>
-          </DialogHeader>
+      {/* Add Topic modal (reuses TopicModal component) */}
+      <TopicModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        topicId={null}
+        createTopic={async (name, themes?, recurrence?, opts?) => {
+          // when modal saves multiple points it will supply opts={reload:false}
+          const res = await createTopic(name, themes, recurrence, opts)
+          return res
+        }}
+        createPrayerPoint={async (text, tId, opts?) => {
+          const res = await createPrayerPoint(text, tId, opts)
+          return res
+        }}
+        refreshData={async () => { await refreshData() }}
+      />
 
-          <div className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label>Topic Name</Label>
-              <Input value={modalTopicName} onChange={(e) => setModalTopicName(e.target.value)} placeholder="Topic name" />
-            </div>
-            <div className="space-y-2">
-              <Label>Prayer Point</Label>
-              <Textarea value={modalPrayerPoint} onChange={(e) => setModalPrayerPoint(e.target.value)} className="min-h-[120px]" />
-            </div>
-            <div className="space-y-2">
-              <Label>Themes (comma-separated)</Label>
-              <Input value={modalPrayerThemes} onChange={(e) => setModalPrayerThemes(e.target.value)} placeholder="e.g. family, work, health" />
-            </div>
-            <div className="space-y-2">
-              <Label>Recurrence</Label>
-              <Select value={modalTopicRecurrence || undefined} onValueChange={(v) => setModalTopicRecurrence(v || null)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  {/* <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem> */}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleModalSubmit} disabled={isSubmitting || !modalTopicName.trim() || !modalPrayerPoint.trim()}>
-                {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Add
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <EditTopicModal
+      <TopicModal
         open={isTopicModalOpen}
         onOpenChange={(open) => {
           setIsTopicModalOpen(open)
@@ -433,10 +365,10 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
         initialPoints={editingPoints}
         initialTopicThemes={editingTopicThemes}
         initialTopicRecurrence={editingTopicRecurrence}
-        updateTopic={async (id, name, themes, recurrence) => { const res = await updateTopic(id, name, themes, recurrence); return res }}
-        deletePrayerPoint={async (tId, pId) => { const res = await deletePrayerPoint(tId, pId); return res }}
-        updatePrayerPoint={async (pId, text) => { const res = await updatePrayerPoint(pId, text); return res }}
-        createPrayerPoint={async (text, tId) => { const res = await createPrayerPoint(text, tId); return res }}
+        updateTopic={async (id, name, themes, recurrence, opts?) => { const res = await updateTopic(id, name, themes, recurrence, opts); return res }}
+        deletePrayerPoint={async (tId, pId, opts?) => { const res = await deletePrayerPoint(tId, pId, opts); return res }}
+        updatePrayerPoint={async (pId, text, opts?) => { const res = await updatePrayerPoint(pId, text, opts); return res }}
+        createPrayerPoint={async (text, tId, opts?) => { const res = await createPrayerPoint(text, tId, opts); return res }}
         deleteTopic={async (tId) => { const res = await deleteTopic(tId); return res }}
         refreshData={async () => { await refreshData() }}
       />

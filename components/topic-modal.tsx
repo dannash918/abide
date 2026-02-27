@@ -14,24 +14,42 @@ type Point = { id?: string; text: string }
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  topicId: string | null
-  initialTopicName: string
-  initialPoints: Point[]
+  // if topicId is null or undefined we treat the modal as "add" mode
+  topicId?: string | null
+  initialTopicName?: string
+  initialPoints?: Point[]
   initialTopicThemes?: string[]
   initialTopicRecurrence?: string | null
-  updateTopic: (topicId: string, name: string, themes?: string[], recurrence?: string | null) => Promise<boolean>
-  deletePrayerPoint: (topicId: string, pointId: string) => Promise<boolean>
-  updatePrayerPoint: (pointId: string, text: string) => Promise<boolean>
-  createPrayerPoint: (text: string, tId: string) => Promise<boolean>
-  deleteTopic: (topicId: string) => Promise<boolean>
+
+  // callbacks for data operations; not all are required in both modes
+  createTopic?: (name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<string | null>
+  updateTopic?: (topicId: string, name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<boolean>
+  deletePrayerPoint?: (topicId: string, pointId: string, options?: { reload?: boolean }) => Promise<boolean>
+  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean }) => Promise<boolean>
+  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean }) => Promise<boolean>
+  deleteTopic?: (topicId: string) => Promise<boolean>
   refreshData: () => Promise<void>
 }
 
-export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, initialPoints, initialTopicThemes, initialTopicRecurrence, updateTopic, deletePrayerPoint, updatePrayerPoint, createPrayerPoint, deleteTopic, refreshData }: Props) {
-  const [topicName, setTopicName] = useState(initialTopicName)
-  const [points, setPoints] = useState<Point[]>(initialPoints)
-  const [topicThemes, setTopicThemes] = useState<string[]>([])
-  const [topicRecurrence, setTopicRecurrence] = useState<string | null>(null)
+export function TopicModal({
+  open,
+  onOpenChange,
+  topicId,
+  initialTopicName = "",
+  initialPoints,
+  initialTopicThemes,
+  initialTopicRecurrence = null,
+  createTopic,
+  updateTopic,
+  deletePrayerPoint,
+  updatePrayerPoint,
+  createPrayerPoint,
+  deleteTopic,
+  refreshData
+}: Props) {  const [topicName, setTopicName] = useState(initialTopicName)
+  const [points, setPoints] = useState<Point[]>(initialPoints || [])
+  const [topicThemes, setTopicThemes] = useState<string[]>(initialTopicThemes || [])
+  const [topicRecurrence, setTopicRecurrence] = useState<string | null>(initialTopicRecurrence || null)
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,18 +58,21 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
   useEffect(() => {
     if (open) {
       setTopicName(initialTopicName)
-      setPoints(initialPoints)
+      setPoints(initialPoints || [])
       setRemovedPointIds([])
       setEditingIndex(null)
       setTopicThemes(initialTopicThemes || [])
       setTopicRecurrence(initialTopicRecurrence || null)
     }
-  }, [open, topicId, initialTopicName, initialPoints])
+  }, [open, topicId, initialTopicName, initialPoints, initialTopicThemes, initialTopicRecurrence])
 
 
   const handleAddPoint = () => {
-    setPoints(prev => [...prev, { text: "" }])
-    setEditingIndex(points.length)
+    setPoints(prev => {
+      const next = [...prev, { text: "" }]
+      setEditingIndex(next.length - 1)
+      return next
+    })
   }
 
   const handleRemovePoint = (idx: number) => {
@@ -66,25 +87,46 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
     }
   }
 
+  const isAddMode = !topicId
+
   const handleSave = async () => {
-    if (!topicId) return
     setIsSubmitting(true)
     try {
-      if (topicName.trim()) {
-        await updateTopic(topicId, topicName.trim(), topicThemes, topicRecurrence)
-      }
+      if (!topicName.trim()) return
 
-      // delete removed points
-      for (const rid of removedPointIds) {
-        try { await deletePrayerPoint(topicId, rid) } catch (e) { /* ignore */ }
-      }
+      if (isAddMode) {
+        if (!createTopic) return
+        // create the topic and then any points; suppress intermediate reloads
+        const newId = await createTopic(topicName.trim(), topicThemes, topicRecurrence, { reload: false })
+        if (!newId) {
+          // creation failed, don't close the modal
+          return
+        }
+        for (const pt of points) {
+          if (pt.text.trim()) {
+            await createPrayerPoint(pt.text, newId, { reload: false })
+          }
+        }
+      } else {
+        // editing an existing topic
+        if (topicId && updateTopic) {
+          await updateTopic(topicId, topicName.trim(), topicThemes, topicRecurrence, { reload: false })
+        }
 
-      // upsert points
-      for (const pt of points) {
-        if (pt.id) {
-          await updatePrayerPoint(pt.id, pt.text)
-        } else {
-          await createPrayerPoint(pt.text, topicId)
+        // delete removed points
+        if (topicId && deletePrayerPoint) {
+          for (const rid of removedPointIds) {
+            try { await deletePrayerPoint(topicId, rid, { reload: false }) } catch (e) { /* ignore */ }
+          }
+        }
+
+        // upsert points
+        for (const pt of points) {
+          if (pt.id) {
+            if (updatePrayerPoint) await updatePrayerPoint(pt.id, pt.text, { reload: false })
+          } else if (topicId) {
+            await createPrayerPoint(pt.text, topicId, { reload: false })
+          }
         }
       }
 
@@ -96,13 +138,13 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
   }
 
   const handleDeleteTopic = async () => {
-    if (!topicId) return
+    if (!topicId || !deleteTopic) return
     if (!confirm('Delete this topic and all its prayer points? This cannot be undone.')) return
     setIsSubmitting(true)
     try {
       await deleteTopic(topicId)
-      await refreshData()
       onOpenChange(false)
+      await refreshData()
     } finally {
       setIsSubmitting(false)
     }
@@ -112,8 +154,8 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onOpenChange(false) } else onOpenChange(true) }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Topic</DialogTitle>
-          <DialogDescription>Edit the topic name and its prayer points.</DialogDescription>
+          <DialogTitle>{isAddMode ? 'Add Topic' : 'Edit Topic'}</DialogTitle>
+          <DialogDescription>{isAddMode ? 'Enter a new topic and its prayer points.' : 'Edit the topic name and its prayer points.'}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
@@ -192,14 +234,14 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
         <DialogFooter>
           <div className="flex items-center justify-between w-full">
             <div>
-              <Button variant="ghost" className="text-destructive" onClick={handleDeleteTopic} disabled={isSubmitting}>
+              <Button variant="ghost" className="text-destructive" onClick={handleDeleteTopic} disabled={isSubmitting || isAddMode}>
                 Delete Topic
               </Button>
             </div>
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={isSubmitting}>
+              <Button onClick={handleSave} disabled={isSubmitting || !topicName.trim()}>
                 {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Save'}
               </Button>
             </div>
@@ -210,4 +252,4 @@ export function EditTopicModal({ open, onOpenChange, topicId, initialTopicName, 
   )
 }
 
-export default EditTopicModal
+export default TopicModal
