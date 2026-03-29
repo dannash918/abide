@@ -17,7 +17,7 @@ export function selectTopicsByOldestPoint(grouped: Record<string, NormalizedTopi
       if (!p.last_prayed_for) return { name, oldest: -Infinity, isDaily, hasUnprayed: true }
     }
 
-    const oldestTs = Math.min(...points.map(p => new Date(p.last_prayed_for).getTime()))
+    const oldestTs = Math.min(...points.map(p => new Date(p.last_prayed_for!).getTime()))
     return { name, oldest: oldestTs, isDaily, hasUnprayed: false }
   })
 

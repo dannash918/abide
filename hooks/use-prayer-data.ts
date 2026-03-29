@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { DatabaseService } from '@/lib/database'
-import type { PrayerData, Topic, PrayerPoint } from '@/lib/types'
+import type { PrayerData, PrayerPoint } from '@/lib/types'
 
 export function usePrayerData() {
   const { user } = useAuth()

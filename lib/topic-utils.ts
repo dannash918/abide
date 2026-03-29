@@ -1,7 +1,7 @@
-import type { PrayerData } from './types'
+import type { PrayerData, PrayerPoint } from './types'
 
 export type NormalizedTopic = {
-  points: any[]
+  points: PrayerPoint[]
   recurrence?: string | null
 }
 
@@ -20,7 +20,7 @@ export function groupAndNormalizeTopics(prayerData: PrayerData): Record<string, 
         if (!a.last_prayed_for && b.last_prayed_for) return -1
         if (!b.last_prayed_for && a.last_prayed_for) return 1
         if (!a.last_prayed_for && !b.last_prayed_for) return 0
-        return new Date(a.last_prayed_for).getTime() - new Date(b.last_prayed_for).getTime()
+        return new Date(a.last_prayed_for!).getTime() - new Date(b.last_prayed_for!).getTime()
       })
     }
 

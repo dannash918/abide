@@ -9,15 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
 import { supabase } from "@/lib/supabase"
-import { confessionFlows } from "@/lib/confession-flow"
-import { lordsPrayerFlows } from "@/lib/lords-prayer-flow"
-import { psalm13Flows } from "@/lib/psalm-13-flow"
-import { psalm103Flows } from "@/lib/psalm-103-flow"
-import { getEverydayFlow, getYourPrayersFlow } from "@/lib/everyday-flow"
-import type { Topic } from "@/lib/types"
+import { confessionFlow, lordsPrayerFlow, psalm13Flow, psalm103Flow } from "@/lib/flows/flows"
+import { getEverydayFlow, getYourPrayersFlow } from "@/lib/flows/everyday-flow"
+import { getLocalPrayerTopicsByIds } from "@/lib/flows"
+import type { PrayerTopic } from "@/lib/types"
 import { PrayerSessionPlayer } from "@/components/prayer-session-player"
 
-type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
+type PrayerSelection = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
 
 type PsalmFlow = 'psalm-13' | 'psalm-103'
 
@@ -26,21 +24,25 @@ interface PrayerSessionTabProps {
 }
 
   // Helper functions to get preview topics for UI descriptions
-const getPreviewTopicsForFlow = (flow: PrayerFlow, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): string[] => {
+const getPreviewTopicsForFlow = (flow: PrayerSelection, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): string[] => {
+  const topics = getTopicsForFlow(flow, psalmFlow, selectedCount, prayerData)
+  return topics.map(t => t.name)
+}
+
+const getTopicsForFlow = (flow: PrayerSelection, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): PrayerTopic[] => {
   if (flow === 'everyday') {
-    const topics = getEverydayFlow(selectedCount, prayerData)
-    return topics.map(t => t.name)
+    return prayerData ? getEverydayFlow(selectedCount, prayerData).topics : []
   } else if (flow === 'your-prayers') {
-    const topics = getYourPrayersFlow(selectedCount, prayerData)
-    return topics.map(t => t.name)
+    return prayerData ? getYourPrayersFlow(selectedCount, prayerData).topics : []
   } else if (flow === 'confession') {
-    return confessionFlows.map(t => t.name)
+    return getLocalPrayerTopicsByIds(confessionFlow.topicIds)
   } else if (flow === 'lords-prayer') {
-    return lordsPrayerFlows.map(t => t.name)
+    return getLocalPrayerTopicsByIds(lordsPrayerFlow.topicIds)
   } else if (flow === 'psalms') {
-    const topics = psalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
-    return topics.map(t => t.name)
+    const flowDefinition = psalmFlow === 'psalm-13' ? psalm13Flow : psalm103Flow
+    return getLocalPrayerTopicsByIds(flowDefinition.topicIds)
   }
+
   return []
 }
 
@@ -55,10 +57,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [premiumUnavailable, setPremiumUnavailable] = useState(false)
-  const [selectedFlow, setSelectedFlow] = useState<PrayerFlow>('everyday')
+  const [selectedFlow, setSelectedFlow] = useState<PrayerSelection>('everyday')
   const [selectedPsalmFlow, setSelectedPsalmFlow] = useState<PsalmFlow>('psalm-13')
-  const [currentTopics, setCurrentTopics] = useState<Topic[]>([])
-  const [previewTopics, setPreviewTopics] = useState<Topic[]>([])
+  const [currentTopics, setCurrentTopics] = useState<PrayerTopic[]>([])
+  const [previewTopics, setPreviewTopics] = useState<PrayerTopic[]>([])
   const [availableThemes, setAvailableThemes] = useState<string[]>([])
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
 
@@ -117,21 +119,22 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     const themes = Array.from(new Set(prayerData.topics.flatMap(t => t.themes || []))).filter(Boolean)
     setAvailableThemes(themes)
 
-    let topics: Topic[] = []
+    let topics: PrayerTopic[] = []
     if (selectedFlow === 'everyday') {
-      topics = getEverydayFlow(selectedCount, prayerData)
+      topics = getEverydayFlow(selectedCount, prayerData).topics
     } else if (selectedFlow === 'your-prayers') {
       if (selectedTheme) {
         topics = prayerData.topics.filter(tt => (tt.themes || []).includes(selectedTheme))
       } else {
-        topics = getYourPrayersFlow(selectedCount, prayerData)
+        topics = getYourPrayersFlow(selectedCount, prayerData).topics
       }
     } else if (selectedFlow === 'confession') {
-      topics = confessionFlows
+      topics = getLocalPrayerTopicsByIds(confessionFlow.topicIds)
     } else if (selectedFlow === 'lords-prayer') {
-      topics = lordsPrayerFlows
+      topics = getLocalPrayerTopicsByIds(lordsPrayerFlow.topicIds)
     } else if (selectedFlow === 'psalms') {
-      topics = selectedPsalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
+      const flowDefinition = selectedPsalmFlow === 'psalm-13' ? psalm13Flow : psalm103Flow
+      topics = getLocalPrayerTopicsByIds(flowDefinition.topicIds)
     }
 
     setPreviewTopics(topics)
@@ -156,21 +159,22 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const startPraying = async () => {
     // Use the cached previewTopics if available so the actual session uses
     // exactly what was shown in the preview.
-    let topics: Topic[] = previewTopics && previewTopics.length > 0 ? previewTopics : []
+    let topics: PrayerTopic[] = previewTopics && previewTopics.length > 0 ? previewTopics : []
 
     // Fallback (shouldn't usually be needed)
     if (topics.length === 0) {
       console.log("Got to fallback unfortunately")
       if (selectedFlow === 'everyday') {
-        topics = getEverydayFlow(selectedCount, prayerData)
+        topics = getEverydayFlow(selectedCount, prayerData).topics
       } else if (selectedFlow === 'your-prayers') {
-        topics = getYourPrayersFlow(selectedCount, prayerData)
+        topics = getYourPrayersFlow(selectedCount, prayerData).topics
       } else if (selectedFlow === 'confession') {
-        topics = confessionFlows
+        topics = getLocalPrayerTopicsByIds(confessionFlow.topicIds)
       } else if (selectedFlow === 'lords-prayer') {
-        topics = lordsPrayerFlows
+        topics = getLocalPrayerTopicsByIds(lordsPrayerFlow.topicIds)
       } else if (selectedFlow === 'psalms') {
-        topics = selectedPsalmFlow === 'psalm-13' ? psalm13Flows : psalm103Flows
+        const flowDefinition = selectedPsalmFlow === 'psalm-13' ? psalm13Flow : psalm103Flow
+        topics = getLocalPrayerTopicsByIds(flowDefinition.topicIds)
       }
     }
 
@@ -391,7 +395,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
               <Label htmlFor="flow" className="text-base">
                 Prayer Flow
               </Label>
-              <Select value={selectedFlow} onValueChange={(value: PrayerFlow) => setSelectedFlow(value)}>
+              <Select value={selectedFlow} onValueChange={(value: PrayerSelection) => setSelectedFlow(value)}>
                 <SelectTrigger id="flow" className="w-full">
                   <SelectValue />
                 </SelectTrigger>

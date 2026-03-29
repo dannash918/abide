@@ -5,12 +5,12 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Play, Pause, Volume2, VolumeX, X, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
-import type { Topic, PrayerPoint } from "@/lib/types"
+import type { PrayerTopic, PrayerPoint } from "@/lib/types"
 
 type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
 
 interface PrayerSessionPlayerProps {
-  topics: Topic[]
+  topics: PrayerTopic[]
   selectedFlow: PrayerFlow
   silenceOption: string
   calculatedPauseDuration: string
@@ -184,7 +184,7 @@ export function PrayerSessionPlayer({
     }
   }
 
-  const [currentTopics, setCurrentTopics] = useState<Topic[]>(topics)
+  const [currentTopics, setCurrentTopics] = useState<PrayerTopic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
   const [topicNames, setTopicNames] = useState<string[]>(topics.map(t => t.name))
   const [currentlyReadingIndex, setCurrentlyReadingIndex] = useState<number | null>(null)

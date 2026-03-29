@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { PrayerData, Topic, PrayerPoint } from './types'
+import type { PrayerData, PrayerTopic, PrayerPoint } from './types'
 
 // Database types (matching the Supabase schema)
 export interface DatabaseTopic {
@@ -27,7 +27,7 @@ export function convertDatabaseToApp(
   topics: DatabaseTopic[],
   prayerPoints: DatabasePrayerPoint[]
 ): PrayerData {
-  const topicsMap = new Map<string, Topic>()
+  const topicsMap = new Map<string, PrayerTopic>()
   
   // Create topics
   topics.forEach(topic => {
@@ -59,7 +59,7 @@ export function convertDatabaseToApp(
 }
 
 // Convert app types to database types
-export function convertAppToDatabase(topic: Topic, userId: string): {
+export function convertAppToDatabase(topic: PrayerTopic, userId: string): {
   topic: Omit<DatabaseTopic, 'id' | 'created_at' | 'updated_at'>
   prayerPoints: Omit<DatabasePrayerPoint, 'id' | 'created_at' | 'updated_at'>[]
 } {
@@ -70,7 +70,7 @@ export function convertAppToDatabase(topic: Topic, userId: string): {
       themes: topic.themes || [],
       recurrence_type: topic.recurrence || null
     },
-    prayerPoints: topic.prayerPoints.map(point => ({
+    prayerPoints: topic.prayerPoints.map((point: PrayerPoint) => ({
       text: point.text,
       topic_id: topic.id,
       user_id: userId
@@ -99,7 +99,7 @@ export class DatabaseService {
         .select('*')
         .eq('user_id', userId)
         .order('topic_id', { ascending: true })
-        .order('last_prayed_for', { ascending: true, nulls: 'first' })
+        .order('last_prayed_for', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: true })
 
       if (pointsError) throw pointsError

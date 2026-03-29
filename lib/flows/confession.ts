@@ -1,6 +1,6 @@
-import { Topic } from "./types";
+import type { PrayerTopic } from "../types";
 
-export const confessionFlows: Topic[] = [
+export const confessionTopics: PrayerTopic[] = [
   {
     id: 'adoration-of-god',
     name: 'Adoration',
@@ -9,13 +9,13 @@ export const confessionFlows: Topic[] = [
         id: 'adoration-1',
         text: 'Begin by praising God for His holiness and perfect justice.',
         topicName: 'Adoration',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'adoration-verse',
         text: 'The Rock, his work is perfect, for all his ways are just. A faithful God who does no wrong, upright and just is he.',
         topicName: 'Adoration',
-        verseReference: 'Deuteronomy 32:4'
+        verseReference: 'Deuteronomy 32:4',
       }
     ]
   },
@@ -25,15 +25,15 @@ export const confessionFlows: Topic[] = [
     prayerPoints: [
       {
         id: 'self-examination-1',
-        text: 'Humbly consider the ways you have fallen short of God\'s will.',
+        text: "Humbly consider the ways you have fallen short of God's will.",
         topicName: 'Self Examination',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'self-examination-verse',
         text: 'for all have sinned and fall short of the glory of God,',
         topicName: 'Self Examination',
-        verseReference: 'Romans 3:23'
+        verseReference: 'Romans 3:23',
       }
     ]
   },
@@ -45,13 +45,13 @@ export const confessionFlows: Topic[] = [
         id: 'confession-1',
         text: 'Take some time to honestly name your specific sins before the Lord.',
         topicName: 'Confession',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'confession-verse',
-        text: 'Then I acknowledged my sin to you and did not conceal my iniquity. I said, \'I will confess my transgressions to the Lord\'',
+        text: "Then I acknowledged my sin to you and did not conceal my iniquity. I said, 'I will confess my transgressions to the Lord'",
         topicName: 'Confession',
-        verseReference: 'Psalm 32:5'
+        verseReference: 'Psalm 32:5',
       }
     ]
   },
@@ -63,13 +63,13 @@ export const confessionFlows: Topic[] = [
         id: 'repentance-1',
         text: 'Commit to turning away from your sin and toward righteousness.',
         topicName: 'Repentance',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'repentance-verse',
         text: 'Repent, then, and turn to God, so that your sins may be wiped out, that times of refreshing may come from the Lord,',
         topicName: 'Repentance',
-        verseReference: 'Acts 3:19'
+        verseReference: 'Acts 3:19',
       }
     ]
   },
@@ -79,15 +79,15 @@ export const confessionFlows: Topic[] = [
     prayerPoints: [
       {
         id: 'forgiveness-1',
-        text: 'Reflect and receive God\'s complete and undeserved pardon through Christ.',
+        text: "Reflect and receive God's complete and undeserved pardon through Christ.",
         topicName: 'Forgiveness',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'forgiveness-verse',
         text: 'If we confess our sins, he is faithful and just and will forgive us our sins and purify us from all unrighteousness.',
         topicName: 'Forgiveness',
-        verseReference: '1 John 1:9'
+        verseReference: '1 John 1:9',
       }
     ]
   },
@@ -99,13 +99,13 @@ export const confessionFlows: Topic[] = [
         id: 'renewal-1',
         text: 'Ask the Holy Spirit to strengthen you today to turn away from sin and live a new life.',
         topicName: 'Renewal',
-        verseReference: null
+        verseReference: null,
       },
       {
         id: 'renewal-verse',
         text: 'I pray that out of his glorious riches he may strengthen you with power through his Spirit in your inner being,',
         topicName: 'Renewal',
-        verseReference: 'Ephesians 3:16'
+        verseReference: 'Ephesians 3:16',
       }
     ]
   }

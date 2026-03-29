@@ -1,17 +1,12 @@
-import { Topic } from "./types";
-import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints } from "./included-topics";
-import { selectTopicsByOldestPoint } from "./topic-selection";
-import groupAndNormalizeTopics from './topic-utils'
-import type { PrayerData } from "./types";
+import type { PrayerData, PrayerFlow } from "../types";
+import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints } from "../included-topics";
+import { selectTopicsByOldestPoint } from "../topic-selection";
+import groupAndNormalizeTopics from '../topic-utils'
 
-// Function to get the everyday flow with user prayer count
-export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData): Topic[] {
-  // Group and normalize topics (sorting + recurrence extraction)
+export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData): PrayerFlow {
   const grouped = groupAndNormalizeTopics(prayerData)
 
-  const availableUserTopics = Object.keys(grouped)
-
-  return [
+  const topics = [
     {
       id: 'abide',
       name: 'Abide',
@@ -46,16 +41,14 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
       prayerPoints: lordsPrayerPoints
     }
   ];
+
+  return { id: 'everyday', name: 'Everyday', topics }
 }
 
-// Function to get the your-prayers flow
-export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerData): Topic[] {
-  // Group and normalize topics (sorting + recurrence extraction)
+export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerData): PrayerFlow {
   const grouped = groupAndNormalizeTopics(prayerData)
 
-  const availableUserTopics = Object.keys(grouped)
-
-  return [
+  const topics = [
     {
       id: 'abide',
       name: 'Abide',
@@ -69,4 +62,6 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
       prayerPoints: (grouped[topicName]?.points) || []
     }))
   ];
+
+  return { id: 'your-prayers', name: 'Your Prayers', topics }
 }
