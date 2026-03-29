@@ -1,6 +1,5 @@
-import { PrayerPoint } from "./types";
-import { praisePointsPairs } from "./praise-verses";
-import { confessPairs } from "./confess-options";
+import type { PrayerPoint } from "../types";
+
 
 export const introAbidePoints: PrayerPoint[][] = [
   [
@@ -418,56 +417,6 @@ export function getAbidePoints(): PrayerPoint[] {
   const randomPair = introAbidePoints[Math.floor(Math.random() * introAbidePoints.length)];
   return randomPair;
 }
-
-// Function to get Praise points (random selection)
-export function getPraisePoints(): PrayerPoint[] {
-  const randomPair = praisePointsPairs[Math.floor(Math.random() * praisePointsPairs.length)];
-  return randomPair;
-}
-
-// Function to get Confession points (random selection)
-export function getConfessionPoints(): PrayerPoint[] {
-  const randomPair = confessPairs[Math.floor(Math.random() * confessPairs.length)];
-  return randomPair;
-}
-
-// Silence topic points
-export const silencePoints: PrayerPoint[] = [
-  {
-    id: 'silence-1',
-    text: 'Take a moment to be still and listen for God\'s voice.',
-    topicName: 'Silence',
-  },
-  {
-    id: 'silence-2',
-    text: 'Be still, and know that I am God.',
-    topicName: 'Silence',
-    verseReference: 'Psalm 46:10'
-  }
-];
-
-// Lord's Prayer points for everyday flow
-export const lordsPrayerPoints: PrayerPoint[] = [
-  {
-    id: 'lords-prayer-1',
-    text: `Our Father in heaven,
-hallowed be your name.
-Your kingdom come,
-your will be done,
-on earth as in heaven.
-Give us today our daily bread.
-Forgive us our sins
-as we forgive those who sin against us.
-Lead us not into temptation
-but deliver us from evil.
-For the kingdom, the power,
-and the glory are yours
-now and for ever.
-Amen.`,
-    topicName: 'Lord\'s Prayer',
-    verseReference: `The Lord's Prayer`
-  }
-];
 
 // Function to get a random selection of user's prayer topics
 export function getYourPrayers(availableTopics: string[], numPrayers: number): string[] {

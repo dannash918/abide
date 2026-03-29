@@ -1,4 +1,4 @@
-import type { PrayerPoint } from './types'
+import type { PrayerPoint } from '../types'
 
 export const praisePointsPairs: PrayerPoint[][] = [
   // Pair 1 (praise-1a/b)
@@ -451,3 +451,8 @@ export const praisePointsPairs: PrayerPoint[][] = [
     }
   ]
 ];
+
+export function getPraisePoints(): PrayerPoint[] {
+  const randomPair = praisePointsPairs[Math.floor(Math.random() * praisePointsPairs.length)];
+  return randomPair;
+}

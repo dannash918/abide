@@ -1,5 +1,9 @@
 import type { PrayerData, PrayerFlow } from "../types";
-import { getAbidePoints, getPraisePoints, getConfessionPoints, silencePoints, lordsPrayerPoints } from "../included-topics";
+import { getAbidePoints } from "../topics/abide-topics";
+import { getPraisePoints } from "../topics/praise-topics";
+import { getConfessionPoints } from "../topics/confess-topics";
+import { silencePoints } from "../topics/silence-topic";
+import { lordsPrayerPoints } from "../topics/lords-prayer-topic";
 import { selectTopicsByOldestPoint } from "../topic-selection";
 import groupAndNormalizeTopics from '../topic-utils'
 
