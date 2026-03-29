@@ -127,6 +127,10 @@ export async function GET(request: NextRequest) {
         voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB' // Default: Adam voice for Rachel
       }
 
+      const isLordsPrayer = text.includes('Our Father') && text.includes('hallowed be') && text.includes('Amen')
+      const voiceSpeed = isLordsPrayer ? 0.7 : 0.75
+      const voiceStability = isLordsPrayer ? 0.98 : 0.95
+
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=0`, {
         method: 'POST',
         headers: {
@@ -138,11 +142,11 @@ export async function GET(request: NextRequest) {
           model_id: modelId,
           // Tweak voice settings to favour a calm, soft, slower delivery
           voice_settings: {
-            stability: 0.95,
+            stability: voiceStability,
             similarity_boost: 0.4,
             style: 0.2,
             use_speaker_boost: false,
-            speed: 0.75,
+            speed: voiceSpeed,
           }
         })
       })
