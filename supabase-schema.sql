@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   voice_type VARCHAR(50) DEFAULT 'polly',
   silence_preference VARCHAR(50) DEFAULT 'automatic',
   topic_count_preference VARCHAR(50) DEFAULT 'automatic',
+  today_prayers_enabled BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

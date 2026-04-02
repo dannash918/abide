@@ -17,6 +17,8 @@ type PrayerSettingsModalProps = {
   setSilencePreference: (value: string) => void
   topicCountPreference: string
   setTopicCountPreference: (value: string) => void
+  todayPrayersEnabled: boolean
+  setTodayPrayersEnabled: (value: boolean) => void
 }
 
 export function PrayerSettingsModal({
@@ -28,6 +30,8 @@ export function PrayerSettingsModal({
   setSilencePreference,
   topicCountPreference,
   setTopicCountPreference,
+  todayPrayersEnabled,
+  setTodayPrayersEnabled,
 }: PrayerSettingsModalProps) {
   const [isPlayingSample, setIsPlayingSample] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
@@ -228,6 +232,23 @@ export function PrayerSettingsModal({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-3">
+            <Label htmlFor="today-prayers-modal" className="text-base">
+              Today's Prayer Points
+            </Label>
+            <Select value={todayPrayersEnabled ? 'enabled' : 'disabled'} onValueChange={(value: string) => setTodayPrayersEnabled(value === 'enabled')}>
+              <SelectTrigger id="today-prayers-modal" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="enabled">Enabled</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              When enabled, you can add session-only Today prayer points before the everyday flow.
+            </p>
+          </div>
         </div>
         <DialogFooter>
           <Button
@@ -244,7 +265,8 @@ export function PrayerSettingsModal({
                       user_id: user.id,
                       voice_type: voiceType,
                       silence_preference: silencePreference,
-                      topic_count_preference: topicCountPreference
+                      topic_count_preference: topicCountPreference,
+                      today_prayers_enabled: todayPrayersEnabled
                     }, {
                       onConflict: 'user_id'
                     })

@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Play, Loader2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Play, Loader2, Trash2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { usePrayerData } from "@/hooks/use-prayer-data"
 import { PrayerSettingsModal } from "@/components/prayer-settings-modal"
@@ -23,10 +25,56 @@ interface PrayerSessionTabProps {
   // Remove prayerData prop since we'll use the hook
 }
 
-  // Helper functions to get preview topics for UI descriptions
-const getPreviewTopicsForFlow = (flow: PrayerSelection, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): string[] => {
-  const topics = getTopicsForFlow(flow, psalmFlow, selectedCount, prayerData)
-  return topics.map(t => t.name)
+// Helper functions for topic flow manipulation
+const insertTodayTopic = (topics: PrayerTopic[], todayPoints: string[]): PrayerTopic[] => {
+  const filtered = todayPoints.map(p => p.trim()).filter(Boolean)
+  if (filtered.length === 0) return topics
+
+  const todayTopic: PrayerTopic = {
+    id: 'today-topic',
+    name: 'Today',
+    customSpeechHeader: 'Pray for Today',
+    prayerPoints: filtered.map((text, index) => ({
+      id: `today-${index + 1}`,
+      text,
+      topicName: 'Today'
+    }))
+  }
+
+  const confessionIndex = topics.findIndex(topic => topic.name === 'Confession')
+  if (confessionIndex === -1) {
+    return [...topics, todayTopic]
+  }
+
+  return [
+    ...topics.slice(0, confessionIndex + 1),
+    todayTopic,
+    ...topics.slice(confessionIndex + 1)
+  ]
+}
+
+const insertTodayPlaceholderPreviewTopic = (topics: PrayerTopic[]): PrayerTopic[] => {
+  if (topics.some(topic => topic.name === 'Today')) {
+    return topics
+  }
+
+  const todayPlaceholder: PrayerTopic = {
+    id: 'today-topic',
+    name: 'Today',
+    customSpeechHeader: 'Pray for Today',
+    prayerPoints: []
+  }
+
+  const confessionIndex = topics.findIndex(topic => topic.name === 'Confession')
+  if (confessionIndex === -1) {
+    return [...topics, todayPlaceholder]
+  }
+
+  return [
+    ...topics.slice(0, confessionIndex + 1),
+    todayPlaceholder,
+    ...topics.slice(confessionIndex + 1)
+  ]
 }
 
 const getTopicsForFlow = (flow: PrayerSelection, psalmFlow: PsalmFlow, selectedCount: number, prayerData: any): PrayerTopic[] => {
@@ -59,9 +107,12 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
   const [premiumUnavailable, setPremiumUnavailable] = useState(false)
   const [selectedFlow, setSelectedFlow] = useState<PrayerSelection>('everyday')
   const [selectedPsalmFlow, setSelectedPsalmFlow] = useState<PsalmFlow>('psalm-13')
+  const [todayPrayersEnabled, setTodayPrayersEnabled] = useState(true)
   const [currentTopics, setCurrentTopics] = useState<PrayerTopic[]>([])
   const [previewTopics, setPreviewTopics] = useState<PrayerTopic[]>([])
   const [availableThemes, setAvailableThemes] = useState<string[]>([])
+  const [isTodayModalOpen, setIsTodayModalOpen] = useState(false)
+  const [todayPrayerPoints, setTodayPrayerPoints] = useState<string[]>([''])
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
 
   // Calculate selectedCount based on total time (more time = more topics)
@@ -122,6 +173,10 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     let topics: PrayerTopic[] = []
     if (selectedFlow === 'everyday') {
       topics = getEverydayFlow(selectedCount, prayerData).topics
+      const filteredTodayPoints = todayPrayerPoints.map(p => p.trim()).filter(Boolean)
+      if (todayPrayersEnabled && filteredTodayPoints.length > 0) {
+        topics = insertTodayTopic(topics, filteredTodayPoints)
+      }
     } else if (selectedFlow === 'your-prayers') {
       if (selectedTheme) {
         topics = prayerData.topics.filter(tt => (tt.themes || []).includes(selectedTheme))
@@ -138,7 +193,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     }
 
     setPreviewTopics(topics)
-  }, [selectedFlow, selectedCount, prayerData, selectedPsalmFlow, selectedTheme])
+  }, [selectedFlow, selectedCount, prayerData, selectedPsalmFlow, selectedTheme, todayPrayerPoints, todayPrayersEnabled])
 
   // Calculate silenceOption based on total time (longer sessions = longer silence)
   const getSilenceTimeFromTotalTime = (totalTimeMinutes: string): string => {
@@ -156,12 +211,9 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
     ? getSilenceTimeFromTotalTime(selectedTotalTime)
     : silencePreference
 
-  const startPraying = async () => {
-    // Use the cached previewTopics if available so the actual session uses
-    // exactly what was shown in the preview.
+  const buildTopicsForStart = (todayPoints: string[]): PrayerTopic[] => {
     let topics: PrayerTopic[] = previewTopics && previewTopics.length > 0 ? previewTopics : []
 
-    // Fallback (shouldn't usually be needed)
     if (topics.length === 0) {
       console.log("Got to fallback unfortunately")
       if (selectedFlow === 'everyday') {
@@ -178,6 +230,16 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       }
     }
 
+    if (selectedFlow === 'everyday' && todayPoints.length > 0 && !topics.some(t => t.name === 'Today')) {
+      topics = insertTodayTopic(topics, todayPoints)
+    }
+
+    return topics
+  }
+
+  const beginPraying = async (todayPoints: string[]) => {
+    const topics = buildTopicsForStart(todayPoints)
+
     // Calculate dynamic pause duration
     console.log('🕒 Calculating pause duration:')
     console.log(`  Total time selected: ${selectedTotalTime} minutes = ${Number.parseInt(selectedTotalTime) * 60} seconds`)
@@ -187,14 +249,13 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
 
     console.log(`  Silence time per silence topic: ${silenceSeconds} seconds`)
 
-    // Count prayer points that will have pauses (excluding Silence)
     const prayerPointsForPaces = topics
       .filter(topic => topic.name !== 'Silence')
       .reduce((total, topic) => total + topic.prayerPoints.length, 0)
 
     console.log(`  Prayer points that will have pauses (excluding Silence): ${prayerPointsForPaces}`)
     console.log(`    Breakdown:`)
-    topics.forEach((topic, index) => {
+    topics.forEach(topic => {
       if (topic.name !== 'Silence') {
         console.log(`      ${topic.name}: ${topic.prayerPoints.length} prayer points`)
       } else {
@@ -202,27 +263,31 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       }
     })
 
-  // Calculate time reserved for topic headings (5 seconds per heading)
-  // A heading is announced unless customSpeechHeader is explicitly an empty string
-  const headingCount = topics.filter(t => t.customSpeechHeader !== '').length
-  const headingSeconds = headingCount * 5
+    const headingCount = topics.filter(t => t.customSpeechHeader !== '').length
+    const headingSeconds = headingCount * 5
+    const availableSecondsForPauses = Math.max(0, totalSelectedSeconds - silenceSeconds - headingSeconds)
 
-  // Available time for pauses (total time minus silence time and topic heading time)
-  const availableSecondsForPauses = Math.max(0, totalSelectedSeconds - silenceSeconds - headingSeconds)
+    console.log(`  Heading count: ${headingCount}, reserved heading time: ${headingSeconds} seconds`)
+    console.log(`  Available time for pauses (total time - silence time - topic heading time): ${availableSecondsForPauses} seconds`)
 
-  console.log(`  Heading count: ${headingCount}, reserved heading time: ${headingSeconds} seconds`)
-  console.log(`  Available time for pauses (total time - silence time - heading time): ${availableSecondsForPauses} seconds`)
-
-    // Calculate pause duration per prayer point (minimum 3 seconds)
     const calculatedPause = prayerPointsForPaces > 0
       ? Math.max(3, Math.floor(availableSecondsForPauses / prayerPointsForPaces))
-      : 30 // fallback
+      : 30
 
     console.log(`  Calculated pause duration per prayer point: ${calculatedPause} seconds (min 3s, fallback 30s)`)
 
     setCalculatedPauseDuration(calculatedPause.toString())
     setCurrentTopics(topics)
     setIsPlaying(true)
+  }
+
+  const startPraying = async () => {
+    if (selectedFlow === 'everyday' && todayPrayersEnabled) {
+      setTodayPrayerPoints([''])
+      setIsTodayModalOpen(true)
+      return
+    }
+    await beginPraying([])
   }
 
   // Reset total time when switching away from Lord's Prayer if 1 or 2 mins is selected
@@ -252,6 +317,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
             setVoiceType(data.voice_type as "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none")
             setSilencePreference(data.silence_preference)
             setTopicCountPreference(data.topic_count_preference)
+            setTodayPrayersEnabled(data.today_prayers_enabled ?? true)
 
             // Only perform the ElevenLabs check (and show the warning) if the saved setting is an ElevenLabs voice
             if (data.voice_type === 'maysie' || data.voice_type === 'rachel') {
@@ -316,6 +382,23 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
       </div>
     )
   }
+
+  const previewTopicList = (() => {
+    let topics = previewTopics && previewTopics.length > 0
+      ? previewTopics
+      : getTopicsForFlow(selectedFlow, selectedPsalmFlow, selectedCount, prayerData)
+
+    if (selectedFlow === 'everyday' && todayPrayersEnabled) {
+      const filteredTodayPoints = todayPrayerPoints.map(p => p.trim()).filter(Boolean)
+      if (filteredTodayPoints.length > 0) {
+        topics = insertTodayTopic(topics, filteredTodayPoints)
+      } else {
+        topics = insertTodayPlaceholderPreviewTopic(topics)
+      }
+    }
+
+    return topics
+  })()
 
   return (
     <div className="space-y-6">
@@ -384,6 +467,8 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
                 setSilencePreference={setSilencePreference}
                 topicCountPreference={topicCountPreference}
                 setTopicCountPreference={setTopicCountPreference}
+                todayPrayersEnabled={todayPrayersEnabled}
+                setTodayPrayersEnabled={setTodayPrayersEnabled}
               />
             </div>
             {premiumUnavailable && (
@@ -447,7 +532,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
               )}
               <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 shadow-sm">
                 <div className="space-y-2">
-                  {(previewTopics && previewTopics.length > 0 ? previewTopics.map(t => t.name) : getPreviewTopicsForFlow(selectedFlow, selectedPsalmFlow, selectedCount, prayerData)).map((topicName, index) => (
+                  {previewTopicList.map((t) => t.name).map((topicName, index) => (
                     <div key={`topic-${index}`} className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-medium text-primary">{index + 1}</span>
@@ -513,6 +598,72 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isTodayModalOpen} onOpenChange={setIsTodayModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Today's Prayer Points</DialogTitle>
+            <DialogDescription>
+              Add session-only prayer points that will be inserted after Confession in your everyday flow. These points are not saved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {todayPrayerPoints.map((point, index) => (
+              <div key={index} className="space-y-2">
+                <Label htmlFor={`today-point-${index}`}>Point {index + 1}</Label>
+                <Textarea
+                  id={`today-point-${index}`}
+                  value={point}
+                  onChange={(event) => {
+                    const updated = [...todayPrayerPoints]
+                    updated[index] = event.target.value
+                    setTodayPrayerPoints(updated)
+                  }}
+                  className="min-h-[120px]"
+                />
+                {todayPrayerPoints.length > 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setTodayPrayerPoints((current) => {
+                        const next = current.filter((_, idx) => idx !== index)
+                        return next.length > 0 ? next : ['']
+                      })
+                    }}
+                  >
+                    Remove point
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              variant="secondary"
+              onClick={() => setTodayPrayerPoints((current) => [...current, ''])}
+            >
+              Add another point
+            </Button>
+          </div>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsTodayModalOpen(false)
+                setTodayPrayerPoints([''])
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                setIsTodayModalOpen(false)
+                await beginPraying(todayPrayerPoints)
+              }}
+            >
+              Start Session
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
