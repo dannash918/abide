@@ -10,7 +10,7 @@
       ]
     },
     {
-      "source": "/(.*)\\.(?:js|css|woff2?)$",
+      "source": "/(.+)\\.(js|css|woff2?)$",
       "headers": [
         {
           "key": "Cache-Control",
