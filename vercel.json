@@ -5,12 +5,16 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache"
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "x-app-version",
+          "value": "1.0.1"
         }
       ]
     },
     {
-      "source": "/(.+)\\.(js|css|woff2?)$",
+      "source": "/(.*)\\.(js|css|woff2?)$",
       "headers": [
         {
           "key": "Cache-Control",
@@ -24,6 +28,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600, must-revalidate"
+        },
+        {
+          "key": "x-app-version",
+          "value": "1.0.1"
         }
       ]
     }
