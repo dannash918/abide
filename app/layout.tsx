@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
+import { ClearServiceWorker } from '@/components/clear-service-worker' // Import the fixer
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -31,6 +32,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        {/* This will run on the client and unregister any "ghost" service workers */}
+        <ClearServiceWorker /> 
         <AuthProvider>
           {children}
         </AuthProvider>
