@@ -29,7 +29,7 @@ const nextConfig = {
           },
           {
             key: 'x-app-version',
-            value: '1.0.5', 
+            value: '1.0.6', 
           },
         ],
       },
