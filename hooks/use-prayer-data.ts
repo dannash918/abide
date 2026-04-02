@@ -84,13 +84,13 @@ export function usePrayerData() {
   const createPrayerPoint = useCallback(async (
     text: string,
     topicId: string,
-    options: { reload?: boolean } = {}
+    options: { reload?: boolean; timePercentage?: number | null } = {}
   ): Promise<boolean> => {
     if (!user) return false
 
     const { reload = true } = options
     try {
-      const pointId = await DatabaseService.createPrayerPoint(text, topicId, user.id)
+      const pointId = await DatabaseService.createPrayerPoint(text, topicId, user.id, options.timePercentage)
       if (pointId) {
         if (reload) await loadPrayerData() // Reload data
         return true
@@ -125,13 +125,13 @@ export function usePrayerData() {
   const updatePrayerPoint = useCallback(async (
     pointId: string,
     text: string,
-    options: { reload?: boolean } = {}
+    options: { reload?: boolean; timePercentage?: number | null } = {}
   ): Promise<boolean> => {
     if (!user) return false
 
     const { reload = true } = options
     try {
-      const success = await DatabaseService.updatePrayerPoint(pointId, text, user.id)
+      const success = await DatabaseService.updatePrayerPoint(pointId, text, user.id, options.timePercentage)
       if (success && reload) {
         await loadPrayerData()
       }

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Trash2, Loader2, Edit } from "lucide-react"
 
-type Point = { id?: string; text: string }
+type Point = { id?: string; text: string; timePercentage?: number | null }
 
 interface Props {
   open: boolean
@@ -25,8 +25,8 @@ interface Props {
   createTopic?: (name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<string | null>
   updateTopic?: (topicId: string, name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<boolean>
   deletePrayerPoint?: (topicId: string, pointId: string, options?: { reload?: boolean }) => Promise<boolean>
-  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean }) => Promise<boolean>
-  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean }) => Promise<boolean>
+  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean; timePercentage?: number | null }) => Promise<boolean>
+  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean; timePercentage?: number | null }) => Promise<boolean>
   deleteTopic?: (topicId: string) => Promise<boolean>
   refreshData: () => Promise<void>
 }
@@ -69,7 +69,7 @@ export function TopicModal({
 
   const handleAddPoint = () => {
     setPoints(prev => {
-      const next = [...prev, { text: "" }]
+      const next = [...prev, { text: "", timePercentage: null }]
       setEditingIndex(next.length - 1)
       return next
     })
@@ -104,7 +104,7 @@ export function TopicModal({
         }
         for (const pt of points) {
           if (pt.text.trim()) {
-            await createPrayerPoint(pt.text, newId, { reload: false })
+            await createPrayerPoint(pt.text, newId, { reload: false, timePercentage: pt.timePercentage })
           }
         }
       } else {
@@ -123,9 +123,9 @@ export function TopicModal({
         // upsert points
         for (const pt of points) {
           if (pt.id) {
-            if (updatePrayerPoint) await updatePrayerPoint(pt.id, pt.text, { reload: false })
+            if (updatePrayerPoint) await updatePrayerPoint(pt.id, pt.text, { reload: false, timePercentage: pt.timePercentage })
           } else if (topicId) {
-            await createPrayerPoint(pt.text, topicId, { reload: false })
+            await createPrayerPoint(pt.text, topicId, { reload: false, timePercentage: pt.timePercentage })
           }
         }
       }
@@ -195,7 +195,7 @@ export function TopicModal({
               {points.map((pt, idx) => (
                 <div key={pt.id || `new-${idx}`} className="flex items-start gap-2">
                   {editingIndex === idx ? (
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-3">
                       <Textarea
                         value={pt.text}
                         onChange={(e) => {
@@ -205,6 +205,25 @@ export function TopicModal({
                         }}
                         className="min-h-[64px] w-full"
                       />
+                      <div className="space-y-2">
+                        <Label>Time multiplier (%)</Label>
+                        <Input
+                          type="number"
+                          value={pt.timePercentage !== undefined && pt.timePercentage !== null ? String(pt.timePercentage) : ''}
+                          placeholder="Default"
+                          onChange={(e) => {
+                            const value = e.target.value.trim()
+                            const parsed = value === '' ? null : Number(value)
+                            const copy = [...points]
+                            copy[idx] = {
+                              ...copy[idx],
+                              timePercentage: parsed === null || Number.isFinite(parsed) ? parsed : null
+                            }
+                            setPoints(copy)
+                          }}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to use the session default pause time.</p>
+                      </div>
                       <div className="flex gap-2 mt-2">
                         <Button variant="outline" onClick={() => setEditingIndex(null)}>Cancel</Button>
                         <Button onClick={() => setEditingIndex(null)}>Done</Button>
@@ -215,7 +234,10 @@ export function TopicModal({
                     </div>
                   ) : (
                     <>
-                      <p className="flex-1 text-sm leading-relaxed">{pt.text}</p>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm leading-relaxed">{pt.text}</p>
+                        <p className="text-xs text-muted-foreground">{typeof pt.timePercentage === 'number' ? `Time multiplier: ${pt.timePercentage}%` : 'Time multiplier: default'}</p>
+                      </div>
                       <div className="flex flex-col gap-2">
                         <Button variant="ghost" size="icon" onClick={() => setEditingIndex(idx)} className="h-8 w-8">
                           <Edit className="w-4 h-4" />

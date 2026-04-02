@@ -1,9 +1,12 @@
-import type { PrayerPoint } from "../types";
+import type { PrayerPoint, PrayerTopic } from '../types'
 
-export const lordsPrayerPoints: PrayerPoint[] = [
-  {
-    id: 'lords-prayer-1',
-    text: `Our Father in heaven,
+export const lordsPrayerTopic: PrayerTopic = {
+  id: 'lords-prayer',
+  name: "Lord's Prayer",
+  prayerPoints: [
+    {
+      id: 'lords-prayer-1',
+      text: `Our Father in heaven,
 hallowed be your name.
 Your kingdom come,
 your will be done,
@@ -17,7 +20,12 @@ For the kingdom, the power,
 and the glory are yours
 now and for ever.
 Amen.`,
-    topicName: 'Lord\'s Prayer',
-    verseReference: `The Lord's Prayer`
-  }
-];
+      topicName: "Lord's Prayer",
+      verseReference: `The Lord's Prayer`
+    }
+  ]
+};
+
+export function getLordsPrayerTopic(): PrayerTopic {
+  return lordsPrayerTopic;
+}

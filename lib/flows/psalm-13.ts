@@ -9,13 +9,13 @@ export const psalm13Topics: PrayerTopic[] = [
         id: 'psalm-13-2-point',
         text: 'How long, Lord? Will you forget me forever?\nHow long will you hide your face from me?\nHow long must I wrestle with my thoughts and day after day have sorrow in my heart?\nHow long will my enemy triumph over me?',
         topicName: 'Cry Out',
-        verseReference: null,
+        verseReference: null
       },
       {
         id: 'psalm-13-3-point',
         text: 'Take some time to cry out in prayer to God about the things that are troubling you.',
         topicName: 'Cry Out',
-        verseReference: null,
+        verseReference: null
       }
     ]
   },

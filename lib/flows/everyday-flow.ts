@@ -1,9 +1,9 @@
 import type { PrayerData, PrayerFlow } from "../types";
-import { getAbidePoints } from "../topics/abide-topics";
-import { getPraisePoints } from "../topics/praise-topics";
-import { getConfessionPoints } from "../topics/confess-topics";
-import { silencePoints } from "../topics/silence-topic";
-import { lordsPrayerPoints } from "../topics/lords-prayer-topic";
+import { getAbideTopic } from "../topics/abide-topics";
+import { getPraiseTopic } from "../topics/praise-topics";
+import { getConfessionTopic } from "../topics/confess-topics";
+import { getSilenceTopic } from "../topics/silence-topic";
+import { getLordsPrayerTopic } from "../topics/lords-prayer-topic";
 import { selectTopicsByOldestPoint } from "../topic-selection";
 import groupAndNormalizeTopics from '../topic-utils'
 
@@ -15,17 +15,13 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
       id: 'abide',
       name: 'Abide',
       customSpeechHeader: "Let's Abide",
-      prayerPoints: getAbidePoints()
+      prayerPoints: getAbideTopic().prayerPoints
     },
-    {
-      id: 'praise',
-      name: 'Praise',
-      prayerPoints: getPraisePoints()
-    },
+    getPraiseTopic(),
     {
       id: 'confession',
       name: 'Confession',
-      prayerPoints: getConfessionPoints()
+      prayerPoints: getConfessionTopic().prayerPoints
     },
     ...selectTopicsByOldestPoint(grouped, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),
@@ -36,13 +32,13 @@ export function getEverydayFlow(userPrayerCount: number, prayerData: PrayerData)
     {
       id: 'silence',
       name: 'Silence',
-      prayerPoints: silencePoints
+      prayerPoints: getSilenceTopic().prayerPoints
     },
     {
       id: 'lords-prayer',
       name: 'Lord\'s Prayer',
       customSpeechHeader: "Let's finish with the Lord's Prayer",
-      prayerPoints: lordsPrayerPoints
+      prayerPoints: getLordsPrayerTopic().prayerPoints
     }
   ];
 
@@ -57,7 +53,7 @@ export function getYourPrayersFlow(userPrayerCount: number, prayerData: PrayerDa
       id: 'abide',
       name: 'Abide',
       customSpeechHeader: "Let's Abide",
-      prayerPoints: getAbidePoints()
+      prayerPoints: getAbideTopic().prayerPoints
     },
     ...selectTopicsByOldestPoint(grouped, userPrayerCount).map(topicName => ({
       id: topicName.toLowerCase().replace(/\s+/g, '-'),

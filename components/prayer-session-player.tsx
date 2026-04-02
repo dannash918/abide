@@ -30,18 +30,28 @@ export function PrayerSessionPlayer({
   const { user } = useAuth();
   const isDanna = user?.email === "dannash918@gmail.com";
   // Calculate total session time in seconds
+  const getTimeMultiplier = (timePercentage?: number | null) => {
+    if (typeof timePercentage === 'number' && timePercentage > 0) {
+      return timePercentage / 100
+    }
+    return 1
+  }
+
   const getTotalSessionSeconds = () => {
     let total = 0;
     topics.forEach(topic => {
       if (topic.name === 'Silence') {
-        // Divide total silence time by number of points in Silence topic
         const silencePoints = topic.prayerPoints.length;
         const silenceTotal = Number.parseInt(silenceOption);
         const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
-        total += silencePoints * silencePerPoint;
+        topic.prayerPoints.forEach(point => {
+          total += silencePerPoint * getTimeMultiplier(point.timePercentage)
+        })
       } else {
-        // All other topics: use calculatedPauseDuration per prayer point
-        total += topic.prayerPoints.length * Number.parseInt(calculatedPauseDuration);
+        const defaultPause = Number.parseInt(calculatedPauseDuration)
+        topic.prayerPoints.forEach(point => {
+          total += defaultPause * getTimeMultiplier(point.timePercentage)
+        })
       }
       total += 5; // 5 seconds for topic heading
     });
@@ -727,14 +737,15 @@ export function PrayerSessionPlayer({
             setCurrentlyReadingIndex(i)
 
             // Determine per-point duration (silence is divided across points)
+            const multiplier = getTimeMultiplier(point.timePercentage)
             let durationMs;
             if (currentTopic === 'Silence') {
               const silencePoints = currentPrayerPoints.length;
               const silenceTotal = Number.parseInt(silenceOption);
               const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
-              durationMs = silencePerPoint * 1000;
+              durationMs = silencePerPoint * 1000 * multiplier;
             } else {
-              durationMs = Number.parseInt(calculatedPauseDuration) * 1000;
+              durationMs = Number.parseInt(calculatedPauseDuration) * 1000 * multiplier;
             }
 
             // Start the timer as soon as we begin the TTS call (or invoke speech)
