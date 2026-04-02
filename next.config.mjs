@@ -9,11 +9,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Adding aggressive headers to prevent the "stuck" state
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // Apply these headers to all routes
+        source: '/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -29,7 +29,7 @@ const nextConfig = {
           },
           {
             key: 'x-app-version',
-            value: '1.0.4', // Bump this if you need to force another refresh later
+            value: '1.0.5', 
           },
         ],
       },
@@ -37,4 +37,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+export default nextConfig
