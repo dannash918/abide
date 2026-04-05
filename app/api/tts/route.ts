@@ -119,19 +119,20 @@ export async function GET(request: NextRequest) {
     try {
       // Select voice based on provider
       let voiceId: string
-      let modelId : string = "eleven_multilingual_v2"
+      let modelId : string = "eleven_v3"
       if (provider === 'maysie') {
         voiceId = 'QPBKI85w0cdXVqMSJ6WB' // Maysie voice ID
-        modelId = "eleven_multilingual_v2"
+        modelId = "eleven_v3"
       } else {
         voiceId = process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB' // Default: Adam voice for Rachel
       }
 
-      const isLordsPrayer = text.includes('Our Father') && text.includes('hallowed be') && text.includes('Amen')
-      const voiceSpeed = isLordsPrayer ? 0.7 : 0.75
-      const voiceStability = isLordsPrayer ? 0.98 : 0.95
+      // const isLordsPrayer = text.includes('Our Father') && text.includes('hallowed be') && text.includes('Amen')
+      const voiceSpeed = 0.7
+      const voiceStability = 0.9
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=0`, {
+      //const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?optimize_streaming_latency=0`, {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

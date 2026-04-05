@@ -116,6 +116,11 @@ export function PrayerSessionPlayer({
         try { setCurrentlyReadingIndex(null) } catch (e) { /* ignore */ }
       }
 
+      audio.onloadedmetadata = () => {
+        const duration = audio.duration
+        console.log(`[Audio Duration] ${duration.toFixed(2)} seconds (${Math.floor(duration/60)}:${Math.floor(duration%60).toString().padStart(2, '0')})`)
+      }
+
       audio.onended = () => { cleanup(); resolve() }
       audio.onerror = () => { cleanup(); resolve() }
       audio.onpause = () => { cleanup(); resolve() }

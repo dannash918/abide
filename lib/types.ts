@@ -3,6 +3,7 @@ export interface PrayerPoint {
   text: string
   verseReference?: string | null
   timePercentage?: number
+  autoContinue?: boolean
   // Internal metadata
   topicName?: string
   last_prayed_for?: string | null
