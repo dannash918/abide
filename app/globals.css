@@ -122,3 +122,57 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .mobile-header {
+    @apply fixed top-0 left-0 right-0 z-40 bg-background border-b border-border backdrop-blur-sm;
+  }
+
+  .mobile-header-content {
+    @apply flex h-16 items-center justify-between px-4;
+  }
+
+  .mobile-header-title {
+    @apply text-xl font-serif font-bold text-primary;
+  }
+
+  .mobile-menu-button {
+    @apply p-2 text-primary hover:bg-muted/50 rounded-lg;
+  }
+
+  .mobile-menu-content {
+    @apply w-80 p-0 bg-background/95 backdrop-blur-sm border-r border-border;
+  }
+
+  .mobile-menu-header {
+    @apply p-6 border-b border-border;
+  }
+
+  .mobile-menu-title {
+    @apply text-xl font-serif font-bold text-primary mb-2;
+  }
+
+  .mobile-menu-items {
+    @apply flex-1 p-6 space-y-4;
+  }
+
+  .mobile-menu-item {
+    @apply w-full justify-start gap-2 h-12;
+  }
+
+  .mobile-menu-footer {
+    @apply p-6 border-t border-border;
+  }
+
+  .mobile-menu-user {
+    @apply flex items-center gap-2 p-3 bg-muted/50 rounded-lg;
+  }
+
+  .mobile-menu-user-text {
+    @apply text-sm font-medium;
+  }
+
+  .mobile-menu-link {
+    @apply text-base font-medium;
+  }
+}

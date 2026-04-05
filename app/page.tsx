@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ManagePrayersTab } from "@/components/manage-prayers-tab"
 import { PrayerSessionTab } from "@/components/prayer-session-tab"
 import { SwipeMenu } from "@/components/swipe-menu"
+import { MobileHeader } from "@/components/mobile-header"
 import { useAuth } from "@/lib/auth-context"
 import { BookOpen, Play } from "lucide-react"
 import type { PrayerData } from "@/lib/types"
@@ -13,6 +14,7 @@ import type { PrayerData } from "@/lib/types"
 export default function PrayerApp() {
   const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState("manage")
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -38,12 +40,18 @@ export default function PrayerApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/10">
-      <SwipeMenu 
-        isAuthenticated={!!user} 
-        userEmail={user?.email} 
+      <MobileHeader
+        title="Abide"
+        onMenuToggle={() => setIsMenuOpen(!isMenuOpen)}
       />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="text-center mb-8">
+      <SwipeMenu
+        isAuthenticated={!!user}
+        userEmail={user?.email}
+        open={isMenuOpen}
+        onOpenChange={setIsMenuOpen}
+      />
+      <div className="container mx-auto px-4 py-8 pt-20 max-w-4xl">
+        <header className="hidden md:block text-center mb-8">
           <h1 className="text-5xl font-serif font-bold text-primary mb-3 text-balance">Abide</h1>
           <p className="text-muted-foreground text-lg text-balance">
              Abide in Me, and I will abide in you.
