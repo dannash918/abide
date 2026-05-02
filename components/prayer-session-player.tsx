@@ -15,6 +15,7 @@ interface PrayerSessionPlayerProps {
   silenceOption: string
   calculatedPauseDuration: string
   voiceType: "rachel" | "maysie" | "polly" | "danielle" | "patrick" | "stephen" | "amy" | "screenReader" | "none"
+  totalSelectedSeconds: number
   onStop: () => void
 }
 
@@ -24,6 +25,7 @@ export function PrayerSessionPlayer({
   silenceOption,
   calculatedPauseDuration,
   voiceType,
+  totalSelectedSeconds,
   onStop
 }: PrayerSessionPlayerProps) {
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
@@ -37,27 +39,7 @@ export function PrayerSessionPlayer({
     return 1
   }
 
-  const getTotalSessionSeconds = () => {
-    let total = 0;
-    topics.forEach(topic => {
-      if (topic.name === 'Silence') {
-        const silencePoints = topic.prayerPoints.length;
-        const silenceTotal = Number.parseInt(silenceOption);
-        const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
-        topic.prayerPoints.forEach(point => {
-          total += silencePerPoint * getTimeMultiplier(point.timePercentage)
-        })
-      } else {
-        const defaultPause = Number.parseInt(calculatedPauseDuration)
-        topic.prayerPoints.forEach(point => {
-          total += defaultPause * getTimeMultiplier(point.timePercentage)
-        })
-      }
-      total += 5; // 5 seconds for topic heading
-    });
-    return total;
-  };
-  const totalSessionSeconds = getTotalSessionSeconds();
+  const totalSessionSeconds = totalSelectedSeconds;
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
   const readingSessionRef = useRef(0)
@@ -102,6 +84,8 @@ export function PrayerSessionPlayer({
     activeIntervalsRef.current = []
   }
 
+  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
   const playBlobAudio = (blob: Blob, targetDurationMs?: number): Promise<void> => {
     return new Promise<void>((resolve) => {
       const url = URL.createObjectURL(blob)
@@ -110,7 +94,12 @@ export function PrayerSessionPlayer({
       // track active audio so we can pause/stop it even if it's not in DOM
       activeAudioRef.current.push(audio)
 
+      let durationMs = 0
+      let ended = false
+
       const cleanup = () => {
+        if (ended) return
+        ended = true
         // remove from active list
         const idx = activeAudioRef.current.indexOf(audio)
         if (idx !== -1) activeAudioRef.current.splice(idx, 1)
@@ -120,19 +109,21 @@ export function PrayerSessionPlayer({
       }
 
       audio.onloadedmetadata = () => {
-        if (targetDurationMs && audio.duration > 0) {
-          const desiredRate = audio.duration / (targetDurationMs / 1000)
-          audio.playbackRate = Math.min(Math.max(desiredRate, 0.5), 4)
-        }
-        const duration = audio.duration / audio.playbackRate
-        console.log(`[Audio Duration] ${duration.toFixed(2)} seconds (${Math.floor(duration/60)}:${Math.floor(duration%60).toString().padStart(2, '0')}) at rate ${audio.playbackRate.toFixed(2)}`)
+        durationMs = Math.max(0, audio.duration * 1000)
+        console.log(`[Audio Duration] ${Math.max(0, audio.duration).toFixed(2)} seconds (${Math.floor(audio.duration/60)}:${Math.floor(audio.duration%60).toString().padStart(2, '0')})`)
         audio.play().catch(() => {
           cleanup()
           resolve()
         })
       }
 
-      audio.onended = () => { cleanup(); resolve() }
+      audio.onended = async () => {
+        cleanup()
+        if (typeof targetDurationMs === 'number' && targetDurationMs > durationMs) {
+          await sleep(targetDurationMs - durationMs)
+        }
+        resolve()
+      }
       audio.onerror = () => { cleanup(); resolve() }
       audio.onpause = () => { cleanup(); resolve() }
 
@@ -220,20 +211,26 @@ export function PrayerSessionPlayer({
       } catch (err) {
         // fallback to browser speech synthesis
         if (typeof window !== 'undefined' && window.speechSynthesis) {
+          const startTime = performance.now()
           await new Promise<void>((resolve) => {
             try {
               const utterance = new SpeechSynthesisUtterance(text)
               utterance.rate = 0.65
               utterance.pitch = 0.9
               utterance.volume = 0.8
-              const done = () => { resolve() }
-              utterance.onend = done
-              utterance.onerror = done
+              utterance.onend = () => resolve()
+              utterance.onerror = () => resolve()
               window.speechSynthesis.speak(utterance)
             } catch (e) {
               resolve()
             }
           })
+          if (typeof targetDurationMs === 'number') {
+            const elapsed = performance.now() - startTime
+            if (elapsed < targetDurationMs) {
+              await sleep(targetDurationMs - elapsed)
+            }
+          }
         }
       }
     }
@@ -248,6 +245,7 @@ export function PrayerSessionPlayer({
     } else {
       // screenReader or unknown -> browser speech synthesis
       if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const startTime = performance.now()
         await new Promise<void>((resolve) => {
           try {
             const utterance = new SpeechSynthesisUtterance(text)
@@ -261,6 +259,12 @@ export function PrayerSessionPlayer({
             resolve()
           }
         })
+        if (typeof targetDurationMs === 'number') {
+          const elapsed = performance.now() - startTime
+          if (elapsed < targetDurationMs) {
+            await sleep(targetDurationMs - elapsed)
+          }
+        }
       }
     }
   }

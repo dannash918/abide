@@ -414,6 +414,7 @@ export function PrayerSessionTab({}: PrayerSessionTabProps) {
           silenceOption={silenceOption}
           calculatedPauseDuration={calculatedPauseDuration}
           voiceType={voiceType}
+          totalSelectedSeconds={Number.parseInt(selectedTotalTime) * 60}
           onStop={async () => {
             try {
               // Collect all prayer point ids from the current session topics
