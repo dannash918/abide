@@ -64,6 +64,8 @@ export function PrayerSessionPlayer({
   const activeAudioRef = useRef<HTMLAudioElement[]>([])
   const activeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const activeIntervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
+  const ttsCacheRef = useRef<Map<string, Blob>>(new Map())
+  const prefetchingRef = useRef(false)
 
   const addTimeout = (id: ReturnType<typeof setTimeout>) => {
     activeTimeoutsRef.current.push(id)
@@ -100,10 +102,11 @@ export function PrayerSessionPlayer({
     activeIntervalsRef.current = []
   }
 
-  const playBlobAudio = (blob: Blob): Promise<void> => {
+  const playBlobAudio = (blob: Blob, targetDurationMs?: number): Promise<void> => {
     return new Promise<void>((resolve) => {
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
+      audio.preload = 'auto'
       // track active audio so we can pause/stop it even if it's not in DOM
       activeAudioRef.current.push(audio)
 
@@ -117,23 +120,90 @@ export function PrayerSessionPlayer({
       }
 
       audio.onloadedmetadata = () => {
-        const duration = audio.duration
-        console.log(`[Audio Duration] ${duration.toFixed(2)} seconds (${Math.floor(duration/60)}:${Math.floor(duration%60).toString().padStart(2, '0')})`)
+        if (targetDurationMs && audio.duration > 0) {
+          const desiredRate = audio.duration / (targetDurationMs / 1000)
+          audio.playbackRate = Math.min(Math.max(desiredRate, 0.5), 4)
+        }
+        const duration = audio.duration / audio.playbackRate
+        console.log(`[Audio Duration] ${duration.toFixed(2)} seconds (${Math.floor(duration/60)}:${Math.floor(duration%60).toString().padStart(2, '0')}) at rate ${audio.playbackRate.toFixed(2)}`)
+        audio.play().catch(() => {
+          cleanup()
+          resolve()
+        })
       }
 
       audio.onended = () => { cleanup(); resolve() }
       audio.onerror = () => { cleanup(); resolve() }
       audio.onpause = () => { cleanup(); resolve() }
 
-      audio.play().catch(() => {
-        cleanup()
-        resolve()
-      })
+      audio.load()
     })
   }
 
   // Speak text and return a promise that resolves when speaking completes (or is cancelled)
-  const speakText = async (text: string): Promise<void> => {
+  const getTtsCacheKey = (provider: string, type: string | undefined, text: string) => `${provider}|${type || 'default'}|${text}`
+
+  const fetchTtsBlob = async (text: string, provider: string, type?: string): Promise<Blob> => {
+    const providerParam = provider ? `&provider=${provider}` : ''
+    const typeParam = type ? `&type=${type}` : ''
+    const response = await fetch(`/api/tts?text=${encodeURIComponent(text)}${providerParam}${typeParam}`)
+    if (!response.ok) {
+      throw new Error('API failed')
+    }
+    return await response.blob()
+  }
+
+  const getCachedTtsBlob = async (text: string, provider: string, type?: string): Promise<Blob> => {
+    const cacheKey = getTtsCacheKey(provider, type, text)
+    const cached = ttsCacheRef.current.get(cacheKey)
+    if (cached) return cached
+
+    const blob = await fetchTtsBlob(text, provider, type)
+    ttsCacheRef.current.set(cacheKey, blob)
+    return blob
+  }
+
+  const prefetchAllPrayerAudio = async () => {
+    if (prefetchingRef.current) return
+    if (voiceType === 'none' || voiceType === 'screenReader') return
+    if (!topics || topics.length === 0) return
+
+    prefetchingRef.current = true
+    ttsCacheRef.current.clear()
+
+    const provider = voiceType === 'stephen' ? 'stephen' : voiceType
+    const type = voiceType === 'stephen' ? 'generative' : undefined
+    const textsToFetch = new Set<string>()
+
+    topics.forEach((topic) => {
+      const headerText = topic.customSpeechHeader ?? topic.name
+      if (headerText && headerText !== '') {
+        textsToFetch.add(headerText)
+      }
+      topic.prayerPoints.forEach((point) => {
+        const textToSpeak = selectedFlow !== 'psalms' && point.verseReference && !point.verseReference.includes("Lord's Prayer")
+          ? `${point.verseReference} says: ${point.text}`
+          : `${point.text}`
+        textsToFetch.add(textToSpeak)
+      })
+    })
+
+    const fetchPromises = Array.from(textsToFetch).map(async (text) => {
+      const cacheKey = getTtsCacheKey(provider, type, text)
+      if (ttsCacheRef.current.has(cacheKey)) return
+      try {
+        const blob = await fetchTtsBlob(text, provider, type)
+        ttsCacheRef.current.set(cacheKey, blob)
+      } catch (error) {
+        console.warn('Prefetch TTS failed for text:', text, error)
+      }
+    })
+
+    await Promise.allSettled(fetchPromises)
+    prefetchingRef.current = false
+  }
+
+  const speakText = async (text: string, targetDurationMs?: number): Promise<void> => {
     // If user selected "No Voice", skip speaking entirely
     if (voiceType === 'none') return
     // If muted or paused/cancelled, resolve immediately
@@ -142,15 +212,11 @@ export function PrayerSessionPlayer({
     // Helper to attempt API-based TTS then fallback to browser speech
     const tryApiThenFallback = async (provider?: string, opts?: { generative?: boolean }) => {
       try {
-        const providerParam = provider ? `&provider=${provider}` : ''
-        const typeParam = opts?.generative ? '&type=generative' : ''
-        const response = await fetch(`/api/tts?text=${encodeURIComponent(text)}${providerParam}${typeParam}`)
-        if (response.ok) {
-          const blob = await response.blob()
-          await playBlobAudio(blob)
-          return
-        }
-        throw new Error('API failed')
+        const resolvedProvider = provider || voiceType
+        const resolvedType = opts?.generative ? 'generative' : undefined
+        const blob = await getCachedTtsBlob(text, resolvedProvider, resolvedType)
+        await playBlobAudio(blob, targetDurationMs)
+        return
       } catch (err) {
         // fallback to browser speech synthesis
         if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -198,6 +264,14 @@ export function PrayerSessionPlayer({
       }
     }
   }
+
+  useEffect(() => {
+    void prefetchAllPrayerAudio()
+    return () => {
+      ttsCacheRef.current.clear()
+      prefetchingRef.current = false
+    }
+  }, [topics, voiceType, selectedFlow])
 
   const [currentTopics, setCurrentTopics] = useState<PrayerTopic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
@@ -594,125 +668,8 @@ export function PrayerSessionPlayer({
             // announcementPromise resolves when the announcement audio completes (or fallback completes)
             let announcementPromise: Promise<void> = Promise.resolve()
 
-            // If user selected No Voice, skip any announcement audio
-            if (voiceType === 'none') {
-              announcementPromise = Promise.resolve()
-            } else if (voiceType === "rachel" || voiceType === "maysie") {
-              try {
-                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
-                announcementPromise = (async () => {
-                  try {
-                    const response = await fetchPromise
-                    if (response.ok) {
-                      const blob = await response.blob()
-                      await playBlobAudio(blob)
-                    } else {
-                      throw new Error('API failed')
-                    }
-                  } catch (error) {
-                    console.warn('Failed to generate topic announcement with ElevenLabs:', error)
-                    // Fallback to browser speech synthesis
-                    if (typeof window !== "undefined" && window.speechSynthesis) {
-                      await new Promise<void>((resolve) => {
-                        try {
-                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                          topicUtterance.rate = 0.65
-                          topicUtterance.pitch = 0.9
-                          topicUtterance.volume = 0.8
-                          topicUtterance.onend = () => resolve()
-                          topicUtterance.onerror = () => resolve()
-                          window.speechSynthesis.speak(topicUtterance)
-                        } catch (e) {
-                          resolve()
-                        }
-                      })
-                    }
-                  }
-                })()
-              } catch (error) {
-                announcementPromise = Promise.resolve()
-              }
-            } else if (voiceType === "polly" || voiceType === "danielle" || voiceType === "patrick" || voiceType === "amy") {
-              try {
-                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=${voiceType}`)
-                announcementPromise = (async () => {
-                  try {
-                    const response = await fetchPromise
-                    if (response.ok) {
-                      const blob = await response.blob()
-                      await playBlobAudio(blob)
-                    } else {
-                      throw new Error('API failed')
-                    }
-                  } catch (error) {
-                    console.warn(`Failed to generate topic announcement with ${voiceType}:`, error)
-                    if (typeof window !== "undefined" && window.speechSynthesis) {
-                      await new Promise<void>((resolve) => {
-                        try {
-                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                          topicUtterance.rate = 0.65
-                          topicUtterance.pitch = 0.9
-                          topicUtterance.volume = 0.8
-                          topicUtterance.onend = () => resolve()
-                          topicUtterance.onerror = () => resolve()
-                          window.speechSynthesis.speak(topicUtterance)
-                        } catch (e) { resolve() }
-                      })
-                    }
-                  }
-                })()
-              } catch (error) {
-                announcementPromise = Promise.resolve()
-              }
-            } else if (voiceType === "stephen") {
-              try {
-                const fetchPromise = fetch(`/api/tts?text=${encodeURIComponent(topicAnnouncement)}&provider=stephen&type=generative`)
-                announcementPromise = (async () => {
-                  try {
-                    const response = await fetchPromise
-                    if (response.ok) {
-                      const blob = await response.blob()
-                      await playBlobAudio(blob)
-                    } else {
-                      throw new Error('API failed')
-                    }
-                  } catch (error) {
-                    console.warn('Failed to generate topic announcement with Stephen generative:', error)
-                    if (typeof window !== "undefined" && window.speechSynthesis) {
-                      await new Promise<void>((resolve) => {
-                        try {
-                          const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                          topicUtterance.rate = 0.65
-                          topicUtterance.pitch = 0.9
-                          topicUtterance.volume = 0.8
-                          topicUtterance.onend = () => resolve()
-                          topicUtterance.onerror = () => resolve()
-                          window.speechSynthesis.speak(topicUtterance)
-                        } catch (e) { resolve() }
-                      })
-                    }
-                  }
-                })()
-              } catch (error) {
-                announcementPromise = Promise.resolve()
-              }
-            } else {
-              // Screen reader
-              if (typeof window !== "undefined" && window.speechSynthesis) {
-                announcementPromise = new Promise<void>((resolve) => {
-                  try {
-                    const topicUtterance = new SpeechSynthesisUtterance(topicAnnouncement)
-                    topicUtterance.rate = 0.65
-                    topicUtterance.pitch = 0.9
-                    topicUtterance.volume = 0.8
-                    topicUtterance.onend = () => resolve()
-                    topicUtterance.onerror = () => resolve()
-                    window.speechSynthesis.speak(topicUtterance)
-                  } catch (e) { resolve() }
-                })
-              } else {
-                announcementPromise = Promise.resolve()
-              }
+            if (voiceType !== 'none') {
+              announcementPromise = speakText(topicAnnouncement, 5000)
             }
 
             // Wait for BOTH the 5s timer (which started when the API call was initiated)
@@ -787,7 +744,7 @@ export function PrayerSessionPlayer({
             // Create TTS promise which resolves when speech/audio completes (or is cancelled)
             const ttsPromise = (async () => {
               try {
-                await speakText(textToSpeak)
+                await speakText(textToSpeak, durationMs)
               } catch (e) {
                 // swallow errors - we still want to wait for timer
               }
