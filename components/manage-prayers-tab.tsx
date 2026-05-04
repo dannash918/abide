@@ -376,7 +376,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
       {/* Floating add button */}
       <Button
         onClick={() => setIsAddModalOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
+        className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg flex items-center justify-center"
       >
         <Plus className="w-6 h-6" />
       </Button>
