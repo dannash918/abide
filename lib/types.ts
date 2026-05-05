@@ -2,7 +2,6 @@ export interface PrayerPoint {
   id: string
   text: string
   verseReference?: string | null
-  timePercentage?: number
   autoContinue?: boolean
   // Internal metadata
   topicName?: string

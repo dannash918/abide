@@ -25,8 +25,8 @@ interface Props {
   createTopic?: (name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<string | null>
   updateTopic?: (topicId: string, name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<boolean>
   deletePrayerPoint?: (topicId: string, pointId: string, options?: { reload?: boolean }) => Promise<boolean>
-  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean; timePercentage?: number | null }) => Promise<boolean>
-  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean; timePercentage?: number | null }) => Promise<boolean>
+  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean }) => Promise<boolean>
+  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean }) => Promise<boolean>
   deleteTopic?: (topicId: string) => Promise<boolean>
   refreshData: () => Promise<void>
 }

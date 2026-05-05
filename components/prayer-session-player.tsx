@@ -31,14 +31,6 @@ export function PrayerSessionPlayer({
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null)
   const { user } = useAuth();
   const isDanna = user?.email === "dannash918@gmail.com";
-  // Calculate total session time in seconds
-  const getTimeMultiplier = (timePercentage?: number | null) => {
-    if (typeof timePercentage === 'number' && timePercentage > 0) {
-      return timePercentage / 100
-    }
-    return 1
-  }
-
   const totalSessionSeconds = totalSelectedSeconds;
   const cancellationRef = useRef({ cancelled: false })
   const pauseRef = useRef({ paused: false })
@@ -703,7 +695,7 @@ export function PrayerSessionPlayer({
             setCurrentlyReadingIndex(i)
 
             // Determine per-point duration (silence is divided across points)
-            const multiplier = getTimeMultiplier(point.timePercentage)
+            const multiplier = 1
             let durationMs;
             if (currentTopic === 'Silence') {
               const silencePoints = currentPrayerPoints.length;
