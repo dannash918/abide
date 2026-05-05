@@ -44,7 +44,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false)
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null)
   const [editingTopicName, setEditingTopicName] = useState("")
-  const [editingPoints, setEditingPoints] = useState<Array<{ id?: string; text: string }>>([])
+  const [editingPoints, setEditingPoints] = useState<Array<{ id?: string; text: string; autoContinue?: boolean }>>([])
   const [editingTopicThemes, setEditingTopicThemes] = useState<string[]>([])
   const [editingTopicRecurrence, setEditingTopicRecurrence] = useState<string | null>(null)
   const [removedPointIds, setRemovedPointIds] = useState<string[]>([])
@@ -252,7 +252,7 @@ export function ManagePrayersTab({}: ManagePrayersTabProps) {
                       onClick={() => {
                         setEditingTopicId(topic.id)
                         setEditingTopicName(topic.name)
-                        setEditingPoints(topic.prayerPoints.map(p => ({ id: p.id, text: p.text })))
+                        setEditingPoints(topic.prayerPoints.map(p => ({ id: p.id, text: p.text, autoContinue: p.autoContinue ?? false })))
                         setEditingTopicThemes(topic.themes || [])
                         setEditingTopicRecurrence(topic.recurrence || null)
                         setRemovedPointIds([])

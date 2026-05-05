@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS prayer_points (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  time_percentage INTEGER
+  time_percentage INTEGER,
+  auto_continue BOOLEAN DEFAULT FALSE
 );
 
 -- Create user_settings table
@@ -116,6 +117,8 @@ CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
 ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS last_prayed_for TIMESTAMP WITH TIME ZONE;
 -- Add time_percentage column to prayer_points table
 ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS time_percentage INTEGER;
+-- Add auto_continue column to prayer_points table
+ALTER TABLE prayer_points ADD COLUMN IF NOT EXISTS auto_continue BOOLEAN DEFAULT FALSE;
 -- Add themes column to topics (array of text tags)
 ALTER TABLE topics ADD COLUMN IF NOT EXISTS themes TEXT[] DEFAULT '{}';
 -- ================================

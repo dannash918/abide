@@ -146,6 +146,44 @@ export function PrayerSessionPlayer({
     return blob
   }
 
+  const getAudioDurationFromBlob = async (blob: Blob): Promise<number> => {
+    return new Promise<number>((resolve) => {
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.preload = 'metadata'
+
+      const cleanup = () => {
+        try { URL.revokeObjectURL(url) } catch (e) { /* ignore */ }
+      }
+
+      audio.onloadedmetadata = () => {
+        const durationMs = Math.max(0, audio.duration * 1000)
+        cleanup()
+        resolve(durationMs)
+      }
+
+      audio.onerror = () => {
+        cleanup()
+        resolve(0)
+      }
+
+      audio.src = url
+      audio.load()
+    })
+  }
+
+  const getPrayerPointClipDuration = async (text: string): Promise<number> => {
+    if (voiceType === 'none' || voiceType === 'screenReader') return 0
+    const provider = voiceType === 'stephen' ? 'stephen' : voiceType
+    const type = voiceType === 'stephen' ? 'generative' : undefined
+    try {
+      const blob = await getCachedTtsBlob(text, provider, type)
+      return await getAudioDurationFromBlob(blob)
+    } catch (error) {
+      return 0
+    }
+  }
+
   const prefetchAllPrayerAudio = async () => {
     if (prefetchingRef.current) return
     if (voiceType === 'none' || voiceType === 'screenReader') return
@@ -694,16 +732,24 @@ export function PrayerSessionPlayer({
             // Set the currently reading index for visual feedback
             setCurrentlyReadingIndex(i)
 
-            // Determine per-point duration (silence is divided across points)
-            const multiplier = 1
-            let durationMs;
-            if (currentTopic === 'Silence') {
-              const silencePoints = currentPrayerPoints.length;
-              const silenceTotal = Number.parseInt(silenceOption);
-              const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0;
-              durationMs = silencePerPoint * 1000 * multiplier;
+            let durationMs
+            if (point.autoContinue) {
+              if (currentTopic === 'Silence') {
+                const silencePoints = currentPrayerPoints.length
+                const silenceTotal = Number.parseInt(silenceOption)
+                const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0
+                durationMs = silencePerPoint * 1000 + 2000
+              } else {
+                const clipDurationMs = await getPrayerPointClipDuration(textToSpeak)
+                durationMs = Math.max(2000, clipDurationMs + 2000)
+              }
+            } else if (currentTopic === 'Silence') {
+              const silencePoints = currentPrayerPoints.length
+              const silenceTotal = Number.parseInt(silenceOption)
+              const silencePerPoint = silencePoints > 0 ? silenceTotal / silencePoints : 0
+              durationMs = silencePerPoint * 1000
             } else {
-              durationMs = Number.parseInt(calculatedPauseDuration) * 1000 * multiplier;
+              durationMs = Number.parseInt(calculatedPauseDuration) * 1000
             }
 
             // Start the timer as soon as we begin the TTS call (or invoke speech)

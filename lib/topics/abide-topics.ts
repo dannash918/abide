@@ -1,7 +1,28 @@
 import type { PrayerPoint, PrayerTopic } from "../types";
 
-
 export const abideTopics: PrayerTopic[] = [
+
+    {
+    id: 'abideTopic-1',
+    name: 'Abide',
+    prayerPoints: [
+      {
+            id: 'begin-prayer-3',
+            text: 'Take some time',
+            topicName: 'Abide',
+            autoContinue: true
+          },
+          {
+            id: 'begin-prayer-4',
+            text: 'Be still, and know that I am God.',
+            topicName: 'Abide',
+            verseReference: 'Psalm 46:10'
+          }
+    ]
+  },
+]
+
+export const abideTopicsBig: PrayerTopic[] = [
 
     {
     id: 'abideTopic-1',

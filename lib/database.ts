@@ -21,6 +21,7 @@ export interface DatabasePrayerPoint {
   updated_at: string
   last_prayed_for?: string | null
   time_percentage?: number | null
+  auto_continue?: boolean | null
 }
 
 // Convert database types to app types
@@ -49,7 +50,8 @@ export function convertDatabaseToApp(
         id: point.id,
         text: point.text,
         topicName: topic.name,
-        last_prayed_for: point.last_prayed_for || undefined
+        last_prayed_for: point.last_prayed_for || undefined,
+        autoContinue: point.auto_continue ?? false
       })
     }
   })
@@ -74,7 +76,8 @@ export function convertAppToDatabase(topic: PrayerTopic, userId: string): {
     prayerPoints: topic.prayerPoints.map((point: PrayerPoint) => ({
       text: point.text,
       topic_id: topic.id,
-      user_id: userId
+      user_id: userId,
+      auto_continue: point.autoContinue ?? false
     }))
   }
 }
@@ -170,12 +173,13 @@ export class DatabaseService {
   static async createPrayerPoint(
     text: string,
     topicId: string,
-    userId: string
+    userId: string,
+    autoContinue?: boolean
   ): Promise<string | null> {
     try {
       const { data, error } = await supabase
         .from('prayer_points')
-        .insert({ text, topic_id: topicId, user_id: userId })
+        .insert({ text, topic_id: topicId, user_id: userId, auto_continue: autoContinue ?? false })
         .select('id')
         .single()
 
@@ -191,10 +195,12 @@ export class DatabaseService {
   static async updatePrayerPoint(
     pointId: string,
     text: string,
-    userId: string
+    userId: string,
+    autoContinue?: boolean
   ): Promise<boolean> {
     try {
       const payload: any = { text }
+      if (autoContinue !== undefined) payload.auto_continue = autoContinue
       const { error } = await supabase
         .from('prayer_points')
         .update(payload)

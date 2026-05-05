@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Trash2, Loader2, Edit } from "lucide-react"
 
-type Point = { id?: string; text: string }
+type Point = { id?: string; text: string; autoContinue?: boolean }
 
 interface Props {
   open: boolean
@@ -25,8 +25,8 @@ interface Props {
   createTopic?: (name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<string | null>
   updateTopic?: (topicId: string, name: string, themes?: string[], recurrence?: string | null, options?: { reload?: boolean }) => Promise<boolean>
   deletePrayerPoint?: (topicId: string, pointId: string, options?: { reload?: boolean }) => Promise<boolean>
-  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean }) => Promise<boolean>
-  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean }) => Promise<boolean>
+  updatePrayerPoint?: (pointId: string, text: string, options?: { reload?: boolean; autoContinue?: boolean }) => Promise<boolean>
+  createPrayerPoint: (text: string, tId: string, options?: { reload?: boolean; autoContinue?: boolean }) => Promise<boolean>
   deleteTopic?: (topicId: string) => Promise<boolean>
   refreshData: () => Promise<void>
 }
@@ -69,7 +69,7 @@ export function TopicModal({
 
   const handleAddPoint = () => {
     setPoints(prev => {
-      const next = [...prev, { text: "" }]
+      const next = [...prev, { text: "", autoContinue: false }]
       setEditingIndex(next.length - 1)
       return next
     })
@@ -123,9 +123,9 @@ export function TopicModal({
         // upsert points
         for (const pt of points) {
           if (pt.id) {
-            if (updatePrayerPoint) await updatePrayerPoint(pt.id, pt.text, { reload: false })
+            if (updatePrayerPoint) await updatePrayerPoint(pt.id, pt.text, { reload: false, autoContinue: pt.autoContinue ?? false })
           } else if (topicId) {
-            await createPrayerPoint(pt.text, topicId, { reload: false })
+            await createPrayerPoint(pt.text, topicId, { reload: false, autoContinue: pt.autoContinue ?? false })
           }
         }
       }
