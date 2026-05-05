@@ -690,6 +690,11 @@ export function PrayerSessionPlayer({
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
+          // Add a 2-second gap at the beginning before announcing the first topic
+          if (currentTopicIndex === 0) {
+            await sleep(2000)
+          }
+
           // Ensure the current topic audio is ready before announcing or speaking
           const topic = currentTopics[currentTopicIndex]
           await prefetchTopicAudio(topic)
