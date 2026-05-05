@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Play, Pause, Volume2, VolumeX, X, Monitor, ChevronLeft, ChevronRight } from "lucide-react"
+import { Play, Pause, Volume2, VolumeX, X, Monitor, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import type { PrayerTopic, PrayerPoint } from "@/lib/types"
 
 type PrayerFlow = 'everyday' | 'your-prayers' | 'confession' | 'lords-prayer' | 'psalms'
@@ -39,7 +39,9 @@ export function PrayerSessionPlayer({
   const activeTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const activeIntervalsRef = useRef<ReturnType<typeof setInterval>[]>([])
   const ttsCacheRef = useRef<Map<string, Blob>>(new Map())
+  const ttsFetchPromisesRef = useRef<Map<string, Promise<Blob>>>(new Map())
   const prefetchingRef = useRef(false)
+  const [isReady, setIsReady] = useState(false)
 
   const addTimeout = (id: ReturnType<typeof setTimeout>) => {
     activeTimeoutsRef.current.push(id)
@@ -136,14 +138,84 @@ export function PrayerSessionPlayer({
     return await response.blob()
   }
 
+  const getSpeechTextForPoint = (point: PrayerPoint) => {
+    if (selectedFlow !== 'psalms' && point.verseReference && !point.verseReference.includes("Lord's Prayer")) {
+      return `${point.verseReference} says: ${point.text}`
+    }
+    return `${point.text}`
+  }
+
+  const getTopicSpeechTexts = (topic: PrayerTopic) => {
+    const texts = new Set<string>()
+    const headerText = topic.customSpeechHeader ?? topic.name
+    if (headerText && headerText !== '') {
+      texts.add(headerText)
+    }
+    topic.prayerPoints.forEach((point) => {
+      texts.add(getSpeechTextForPoint(point))
+    })
+    return Array.from(texts)
+  }
+
+  const getTtsProviderAndType = () => {
+    const provider = voiceType === 'stephen' ? 'stephen' : voiceType
+    const type = voiceType === 'stephen' ? 'generative' : undefined
+    return { provider, type }
+  }
+
   const getCachedTtsBlob = async (text: string, provider: string, type?: string): Promise<Blob> => {
     const cacheKey = getTtsCacheKey(provider, type, text)
     const cached = ttsCacheRef.current.get(cacheKey)
     if (cached) return cached
 
-    const blob = await fetchTtsBlob(text, provider, type)
-    ttsCacheRef.current.set(cacheKey, blob)
-    return blob
+    const pending = ttsFetchPromisesRef.current.get(cacheKey)
+    if (pending) {
+      return pending
+    }
+
+    const fetchPromise = fetchTtsBlob(text, provider, type)
+      .then((blob) => {
+        ttsCacheRef.current.set(cacheKey, blob)
+        ttsFetchPromisesRef.current.delete(cacheKey)
+        return blob
+      })
+      .catch((error) => {
+        ttsFetchPromisesRef.current.delete(cacheKey)
+        throw error
+      })
+
+    ttsFetchPromisesRef.current.set(cacheKey, fetchPromise)
+    return fetchPromise
+  }
+
+  const prefetchTopicAudio = async (topic: PrayerTopic) => {
+    if (voiceType === 'none' || voiceType === 'screenReader') return
+    if (!topic) return
+
+    const { provider, type } = getTtsProviderAndType()
+    const texts = getTopicSpeechTexts(topic).filter((text) => {
+      const cacheKey = getTtsCacheKey(provider, type, text)
+      return !ttsCacheRef.current.has(cacheKey)
+    })
+
+    if (texts.length === 0) return
+
+    const queue = [...texts]
+    const maxConcurrent = 3
+
+    const worker = async () => {
+      while (queue.length > 0) {
+        const text = queue.shift()
+        if (!text) break
+        try {
+          await getCachedTtsBlob(text, provider, type)
+        } catch (error) {
+          console.warn('Prefetch TTS failed for text:', text, error)
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(maxConcurrent, queue.length) }, () => worker()))
   }
 
   const getAudioDurationFromBlob = async (blob: Blob): Promise<number> => {
@@ -182,46 +254,6 @@ export function PrayerSessionPlayer({
     } catch (error) {
       return 0
     }
-  }
-
-  const prefetchAllPrayerAudio = async () => {
-    if (prefetchingRef.current) return
-    if (voiceType === 'none' || voiceType === 'screenReader') return
-    if (!topics || topics.length === 0) return
-
-    prefetchingRef.current = true
-    ttsCacheRef.current.clear()
-
-    const provider = voiceType === 'stephen' ? 'stephen' : voiceType
-    const type = voiceType === 'stephen' ? 'generative' : undefined
-    const textsToFetch = new Set<string>()
-
-    topics.forEach((topic) => {
-      const headerText = topic.customSpeechHeader ?? topic.name
-      if (headerText && headerText !== '') {
-        textsToFetch.add(headerText)
-      }
-      topic.prayerPoints.forEach((point) => {
-        const textToSpeak = selectedFlow !== 'psalms' && point.verseReference && !point.verseReference.includes("Lord's Prayer")
-          ? `${point.verseReference} says: ${point.text}`
-          : `${point.text}`
-        textsToFetch.add(textToSpeak)
-      })
-    })
-
-    const fetchPromises = Array.from(textsToFetch).map(async (text) => {
-      const cacheKey = getTtsCacheKey(provider, type, text)
-      if (ttsCacheRef.current.has(cacheKey)) return
-      try {
-        const blob = await fetchTtsBlob(text, provider, type)
-        ttsCacheRef.current.set(cacheKey, blob)
-      } catch (error) {
-        console.warn('Prefetch TTS failed for text:', text, error)
-      }
-    })
-
-    await Promise.allSettled(fetchPromises)
-    prefetchingRef.current = false
   }
 
   const speakText = async (text: string, targetDurationMs?: number): Promise<void> => {
@@ -298,14 +330,6 @@ export function PrayerSessionPlayer({
       }
     }
   }
-
-  useEffect(() => {
-    void prefetchAllPrayerAudio()
-    return () => {
-      ttsCacheRef.current.clear()
-      prefetchingRef.current = false
-    }
-  }, [topics, voiceType, selectedFlow])
 
   const [currentTopics, setCurrentTopics] = useState<PrayerTopic[]>(topics)
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0)
@@ -640,6 +664,8 @@ export function PrayerSessionPlayer({
       if (totalTimeIntervalRef.current) {
         clearInterval(totalTimeIntervalRef.current)
       }
+      ttsCacheRef.current.clear()
+      ttsFetchPromisesRef.current.clear()
       if (wakeLock) {
         wakeLock.release()
       }
@@ -647,6 +673,7 @@ export function PrayerSessionPlayer({
   }, [wakeLock])
 
   useEffect(() => {
+    if (!isReady) return
     if (!isPaused && !isMuted && topicNames.length > 0 && !announcedTopicsRef.current.has(currentTopicIndex)) {
 
       // Increment session to cancel any previous reading
@@ -663,8 +690,14 @@ export function PrayerSessionPlayer({
         const readPrayerPoints = async () => {
           const currentSession = readingSessionRef.current
 
-          // First, announce the topic based on header settings
+          // Ensure the current topic audio is ready before announcing or speaking
           const topic = currentTopics[currentTopicIndex]
+          await prefetchTopicAudio(topic)
+          if (currentTopicIndex + 1 < currentTopics.length) {
+            void prefetchTopicAudio(currentTopics[currentTopicIndex + 1])
+          }
+
+          // First, announce the topic based on header settings
           let topicAnnouncement: string | null = null
           if (topic?.customSpeechHeader === '') {
             // Don't announce if explicitly silenced or custom header is empty string
@@ -854,7 +887,7 @@ export function PrayerSessionPlayer({
         // Cleanup if needed
       }
     }
-  }, [isPaused, isMuted, currentTopicIndex, topicNames, currentTopics, calculatedPauseDuration, voiceType, selectedFlow])
+  }, [isReady, isPaused, isMuted, currentTopicIndex, topicNames, currentTopics, calculatedPauseDuration, voiceType, selectedFlow])
 
   // Cleanup wake lock on unmount
   useEffect(() => {
@@ -888,7 +921,32 @@ export function PrayerSessionPlayer({
 
     // Request wake lock to prevent screen from turning off
     requestWakeLock()
+
+    const prepareInitialAudio = async () => {
+      if (voiceType === 'none' || voiceType === 'screenReader') {
+        setIsReady(true)
+        return
+      }
+      if (topics.length > 0) {
+        await prefetchTopicAudio(topics[0])
+      }
+      setIsReady(true)
+    }
+
+    void prepareInitialAudio()
   }, [])
+
+  if (!isReady) {
+    return (
+      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-8 z-50">
+        <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
+        <div className="text-center max-w-lg">
+          <h2 className="text-2xl font-semibold mb-2">Preparing your prayer session</h2>
+          <p className="text-sm text-muted-foreground">Get ready to pray.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`${isFullscreen ? "fixed inset-0 bg-white flex flex-col p-8 z-50" : "space-y-4"}`}>

@@ -1,6 +1,6 @@
 import type { PrayerPoint, PrayerTopic } from "../types";
 
-export const abideTopics: PrayerTopic[] = [
+export const abideTopicsSmall: PrayerTopic[] = [
 
     {
     id: 'abideTopic-1',
@@ -22,7 +22,7 @@ export const abideTopics: PrayerTopic[] = [
   },
 ]
 
-export const abideTopicsBig: PrayerTopic[] = [
+export const abideTopics: PrayerTopic[] = [
 
     {
     id: 'abideTopic-1',
