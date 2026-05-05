@@ -10,6 +10,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Finally, I confessed all my sins to you and stopped trying to hide my guilt. I said to myself, "I will confess my rebellion to the Lord." And you forgave me! All my guilt is gone.',
         topicName: 'Confess',
         verseReference: 'Psalm 32:5',
+        autoContinue: true,
       },
       {
         id: 'confess-1',
@@ -27,6 +28,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'But if we confess our sins to him, he is faithful and just to forgive us our sins and to cleanse us from all wickedness.',
         topicName: 'Confess',
         verseReference: '1 John 1:9',
+        autoContinue: true,
       },
       {
         id: 'confess-3',
@@ -44,6 +46,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'People who conceal their sins will not prosper, but if they confess and turn from them, they will receive mercy.',
         topicName: 'Confess',
         verseReference: 'Proverbs 28:13',
+        autoContinue: true,
       },
       {
         id: 'confess-5',
@@ -61,6 +64,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'O Lord, forgive my sins, for they are many.',
         topicName: 'Confess',
         verseReference: 'Psalm 25:11',
+        autoContinue: true,
       },
       {
         id: 'confess-7',
@@ -78,6 +82,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'O God, have mercy on me because of your unfailing love. Because of your great compassion, blot out the stain of my sins. Wash me clean from my guilt. Purify me from my sin.',
         topicName: 'Confess',
         verseReference: 'Psalm 51:1–2',
+        autoContinue: true,
       },
       {
         id: 'confess-9',
@@ -95,6 +100,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'For I recognize my rebellion; it haunts me day and night. Against you, and you alone, have I sinned; I have done what is evil in your sight. You will be proved right in what you say, and your judgment against me is just.',
         topicName: 'Confess',
         verseReference: 'Psalm 51:3–4',
+        autoContinue: true,
       },
       {
         id: 'confess-11',
@@ -112,6 +118,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Create in me a clean heart, O God. Renew a loyal spirit within me. Do not banish me from your presence, and don\'t take your Holy Spirit from me.',
         topicName: 'Confess',
         verseReference: 'Psalm 51:10–11',
+        autoContinue: true,
       },
       {
         id: 'confess-13',
@@ -129,6 +136,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'For if we would examine ourselves, we would not be judged by God in the first place.',
         topicName: 'Confess',
         verseReference: '1 Corinthians 11:31',
+        autoContinue: true,
       },
       {
         id: 'confess-15',
@@ -146,6 +154,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Confess your sins to each other and pray for each other so that you may be healed. The earnest prayer of a righteous person has great power and produces wonderful results.',
         topicName: 'Confess',
         verseReference: 'James 5:16',
+        autoContinue: true,
       },
       {
         id: 'confess-17',
@@ -163,6 +172,7 @@ export const confessTopics: PrayerTopic[] = [
         text: '"When you become aware of your guilt in any of these ways, you must confess your sin.',
         topicName: 'Confess',
         verseReference: 'Leviticus 5:5',
+        autoContinue: true,
       },
       {
         id: 'confess-19',
@@ -180,6 +190,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'They must confess their sin and make full restitution for what they have done, adding an additional 20 percent and returning it to the person who was wronged.',
         topicName: 'Confess',
         verseReference: 'Numbers 5:7',
+        autoContinue: true,
       },
       {
         id: 'confess-21',
@@ -197,6 +208,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Then if my people who are called by my name will humble themselves and pray and seek my face and turn from their wicked ways, I will hear from heaven and will forgive their sins and restore their land.',
         topicName: 'Confess',
         verseReference: '2 Chronicles 7:14',
+        autoContinue: true,
       },
       {
         id: 'confess-23',
@@ -214,6 +226,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'And now, O our God, what can we say? For we have refused to obey the commands you gave us through your servants the prophets.',
         topicName: 'Confess',
         verseReference: 'Ezra 9:10',
+        autoContinue: true,
       },
       {
         id: 'confess-25',
@@ -231,6 +244,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'But the Lord our God is merciful and forgiving, even though we have rebelled against him.',
         topicName: 'Confess',
         verseReference: 'Daniel 9:9',
+        autoContinue: true,
       },
       {
         id: 'confess-27',
@@ -248,6 +262,7 @@ export const confessTopics: PrayerTopic[] = [
         text: '"Come now, let\'s settle this," says the Lord. "Though your sins are like scarlet, I will make them as white as snow. Though they are red like crimson, I will make them as white as wool."',
         topicName: 'Confess',
         verseReference: 'Isaiah 1:18',
+        autoContinue: true,
       },
       {
         id: 'confess-29',
@@ -265,6 +280,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Let the wicked change their ways and banish the very thought of doing wrong. Let them turn to the Lord that he may have mercy on them. Yes, turn to our God, for he will forgive generously.',
         topicName: 'Confess',
         verseReference: 'Isaiah 55:7',
+        autoContinue: true,
       },
       {
         id: 'confess-31',
@@ -282,6 +298,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'I—yes, I alone—will blot out your sins for my own sake and will never think of them again.',
         topicName: 'Confess',
         verseReference: 'Isaiah 43:25',
+        autoContinue: true,
       },
       {
         id: 'confess-33',
@@ -299,6 +316,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Repent, and turn from your sins. Don\'t let them destroy you! Put all your rebellion behind you, and find a new heart and a new spirit. For why should you die, O people of Israel?',
         topicName: 'Confess',
         verseReference: 'Ezekiel 18:30–31',
+        autoContinue: true,
       },
       {
         id: 'confess-35',
@@ -316,6 +334,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'And when you stand praying, forgive anyone who has wronged you, so that your Father in heaven will forgive your sins.',
         topicName: 'Confess',
         verseReference: 'Mark 11:25',
+        autoContinue: true,
       },
       {
         id: 'confess-37',
@@ -333,6 +352,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Then he added, "Now go and learn the meaning of this Scripture: \'I want you to show mercy, not offer sacrifices.\' For I have come to call not those who think they are righteous, but those who know they are sinners."',
         topicName: 'Confess',
         verseReference: 'Matthew 9:13',
+        autoContinue: true,
       },
       {
         id: 'confess-39',
@@ -350,6 +370,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Repent of your sins and turn to God, for the Kingdom of Heaven is near.',
         topicName: 'Confess',
         verseReference: 'Matthew 4:17',
+        autoContinue: true,
       },
       {
         id: 'confess-41',
@@ -367,6 +388,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Now repent of your sins and turn to God, so that your sins may be wiped away.',
         topicName: 'Confess',
         verseReference: 'Acts 3:19',
+        autoContinue: true,
       },
       {
         id: 'confess-43',
@@ -384,6 +406,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'He is so rich in kindness and grace that he purchased our freedom with the blood of his Son and forgave our sins.',
         topicName: 'Confess',
         verseReference: 'Ephesians 1:7',
+        autoContinue: true,
       },
       {
         id: 'confess-45',
@@ -401,6 +424,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Since we have been united with Christ Jesus in his death, we will also be raised to life as he was. Our old sinful selves were crucified with Christ so that sin might lose its power in our lives. We are no longer slaves to sin.',
         topicName: 'Confess',
         verseReference: 'Romans 6:5–6',
+        autoContinue: true,
       },
       {
         id: 'confess-47',
@@ -418,6 +442,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'For the wages of sin is death, but the free gift of God is eternal life through Christ Jesus our Lord.',
         topicName: 'Confess',
         verseReference: 'Romans 6:23',
+        autoContinue: true,
       },
       {
         id: 'confess-49',
@@ -435,6 +460,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Come close to God, and God will come close to you. Wash your hands, you sinners; purify your hearts, for your loyalty is divided between God and the world.',
         topicName: 'Confess',
         verseReference: 'James 4:8',
+        autoContinue: true,
       },
       {
         id: 'confess-51',
@@ -452,6 +478,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'Dear children, I am writing this to all of you so that you will not sin. But if anyone does sin, we have an advocate who pleads our case before the Father—Jesus Christ, the righteous one.',
         topicName: 'Confess',
         verseReference: '1 John 2:1',
+        autoContinue: true,
       },
       {
         id: 'confess-53',
@@ -469,6 +496,7 @@ export const confessTopics: PrayerTopic[] = [
         text: '"Don\'t tear your clothing in your grief, but tear your hearts instead." Return to the Lord your God, for he is merciful and compassionate, slow to get angry and filled with unfailing love. He is eager to relent and not punish.',
         topicName: 'Confess',
         verseReference: 'Joel 2:13',
+        autoContinue: true,
       },
       {
         id: 'confess-55',
@@ -486,6 +514,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'We have all sinned and fallen short of God\'s glorious standard.',
         topicName: 'Confess',
         verseReference: 'Romans 3:23',
+        autoContinue: true,
       },
       {
         id: 'confess-57',
@@ -503,6 +532,7 @@ export const confessTopics: PrayerTopic[] = [
         text: 'O Lord, hear my prayer! Listen to my plea! Answer me because you are faithful and righteous. Don\'t put your servant on trial, for no one is innocent in your sight.',
         topicName: 'Confess',
         verseReference: 'Psalm 143:1–2',
+        autoContinue: true,
       },
       {
         id: 'confess-59',

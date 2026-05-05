@@ -11,6 +11,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Shout with joy to the Lord, all the earth!\nWorship the Lord with gladness.\nCome before him, singing with joy.\nEnter his gates with thanksgiving;\ngo into his courts with praise.\nGive thanks to him and praise his name.',
       topicName: 'Praise',
       verseReference: 'Psalm 100:1–4',
+        autoContinue: true,
     },
     {
       id: 'praise-1a',
@@ -30,6 +31,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Let all that I am praise the Lord;\nwith my whole heart, I will praise his holy name.\nLet all that I am praise the Lord;\nmay I never forget the good things he does for me.',
       topicName: 'Praise',
       verseReference: 'Psalm 103:1–2',
+        autoContinue: true,
     },
     {
       id: 'praise-2a',
@@ -49,6 +51,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Sing a new song to the Lord!\nLet the whole earth sing to the Lord!\nSing to the Lord; praise his name.\nEach day proclaim the good news that he saves.',
       topicName: 'Praise',
       verseReference: 'Psalm 96:1–2',
+        autoContinue: true,
     },
     {
       id: 'praise-3a',
@@ -68,6 +71,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Come, let us sing to the Lord!\nLet us shout joyfully to the Rock of our salvation.\nLet us come to him with thanksgiving.\nLet us sing psalms of praise to him.',
       topicName: 'Praise',
       verseReference: 'Psalm 95:1–2',
+        autoContinue: true,
     },
     {
       id: 'praise-4a',
@@ -87,6 +91,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'I will exalt you, my God and King,\nand praise your name forever and ever.\nGreat is the Lord! He is most worthy of praise!',
       topicName: 'Praise',
       verseReference: 'Psalm 145:1–3',
+        autoContinue: true,
     },
     {
       id: 'praise-5a',
@@ -106,6 +111,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is compassionate and merciful,\nslow to get angry and filled with unfailing love.\nHe does not constantly accuse us,\nnor remain angry forever.',
       topicName: 'Praise',
       verseReference: 'Psalm 103:8–9',
+        autoContinue: true,
     },
     {
       id: 'praise-6a',
@@ -125,6 +131,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is my rock, my fortress, and my savior;\nmy God is my rock, in whom I find protection.\nHe is my shield, the power that saves me,\nand my place of safety.',
       topicName: 'Praise',
       verseReference: 'Psalm 18:2',
+        autoContinue: true,
     },
     {
       id: 'praise-7a',
@@ -144,6 +151,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Give thanks to the Lord, for he is good!\nHis faithful love endures forever.',
       topicName: 'Praise',
       verseReference: 'Psalm 136:1',
+        autoContinue: true,
     },
     {
       id: 'praise-8a',
@@ -163,6 +171,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The steadfast love of the Lord never ceases;\nhis mercies never come to an end.\nThey are new every morning;\ngreat is your faithfulness.',
       topicName: 'Praise',
       verseReference: 'Lamentations 3:22–23',
+        autoContinue: true,
     },
     {
       id: 'praise-9a',
@@ -182,6 +191,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is my light and my salvation—so why should I be afraid?\nThe Lord is my fortress, protecting me from danger, so why should I tremble?',
       topicName: 'Praise',
       verseReference: 'Psalm 27:1',
+        autoContinue: true,
     },
     {
       id: 'praise-10a',
@@ -201,6 +211,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Shout to the Lord, all the earth;\nbreak out in praise and sing for joy!\nSing your praise to the Lord with the harp.',
       topicName: 'Praise',
       verseReference: 'Psalm 98:4–5',
+        autoContinue: true,
     },
     {
       id: 'praise-11a',
@@ -220,6 +231,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Praise the Lord, all you nations.\nPraise him, all you people of the earth.\nFor his unfailing love for us is powerful;\nthe Lord’s faithfulness endures forever.',
       topicName: 'Praise',
       verseReference: 'Psalm 117:1–2',
+        autoContinue: true,
     },
     {
       id: 'praise-12a',
@@ -239,6 +251,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: '“You are worthy, O Lord our God,\nto receive glory and honor and power.\nFor you created all things,\nand they exist because you created what you pleased.”',
       topicName: 'Praise',
       verseReference: 'Revelation 4:11',
+        autoContinue: true,
     },
     {
       id: 'praise-13a',
@@ -258,6 +271,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is close to the brokenhearted;\nhe rescues those whose spirits are crushed.',
       topicName: 'Praise',
       verseReference: 'Psalm 34:18',
+        autoContinue: true,
     },
     {
       id: 'praise-14a',
@@ -277,6 +291,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'God is our refuge and strength,\nalways ready to help in times of trouble.',
       topicName: 'Praise',
       verseReference: 'Psalm 46:1',
+        autoContinue: true,
     },
     {
       id: 'praise-15a',
@@ -296,6 +311,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Praise the Lord!\nPraise God in his sanctuary;\npraise him in the mighty heavens!\nPraise him for his mighty works;\npraise his unequaled greatness!',
       topicName: 'Praise',
       verseReference: 'Psalm 150:1–2',
+        autoContinue: true,
     },
     {
       id: 'praise-16a',
@@ -315,6 +331,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is good to everyone.\nHe showers compassion on all his creation.',
       topicName: 'Praise',
       verseReference: 'Psalm 145:9',
+        autoContinue: true,
     },
     {
       id: 'praise-17a',
@@ -334,6 +351,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Oh, how great are God’s riches and wisdom and knowledge!\nHow impossible it is for us to understand his decisions and his ways!',
       topicName: 'Praise',
       verseReference: 'Romans 11:33',
+        autoContinue: true,
     },
     {
       id: 'praise-18a',
@@ -353,6 +371,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'For the Lord is a great God,\na great King above all gods.\nHe holds in his hands the depths of the earth\nand the mightiest mountains.',
       topicName: 'Praise',
       verseReference: 'Psalm 95:3–4',
+        autoContinue: true,
     },
     {
       id: 'praise-19a',
@@ -372,6 +391,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: '“Oh, how my soul praises the Lord.\nHow my spirit rejoices in God my Savior!”',
       topicName: 'Praise',
       verseReference: 'Luke 1:46–47',
+        autoContinue: true,
     },
     {
       id: 'praise-20a',
@@ -391,6 +411,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord reigns! Let the earth rejoice!\nLet the farthest coastlands be glad.',
       topicName: 'Praise',
       verseReference: 'Psalm 97:1',
+        autoContinue: true,
     },
     {
       id: 'praise-21a',
@@ -410,6 +431,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'For the Lord is righteous;\nhe loves justice.\nThe godly will see his face.',
       topicName: 'Praise',
       verseReference: 'Psalm 11:7',
+        autoContinue: true,
     },
     {
       id: 'praise-22a',
@@ -429,6 +451,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'O Lord God of Heaven’s Armies!\nWhere is there anyone as mighty as you, O Lord?\nYou are entirely faithful.',
       topicName: 'Praise',
       verseReference: 'Psalm 89:8',
+        autoContinue: true,
     },
     {
       id: 'praise-23a',
@@ -448,6 +471,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'The Lord is my shepherd;\nI have all that I need.',
       topicName: 'Praise',
       verseReference: 'Psalm 23:1',
+        autoContinue: true,
     },
     {
       id: 'praise-24a',
@@ -467,6 +491,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'He lifted me out of the pit of despair,\nout of the mud and the mire.\nHe set my feet on solid ground\nand steadied me as I walked along.',
       topicName: 'Praise',
       verseReference: 'Psalm 40:2',
+        autoContinue: true,
     },
     {
       id: 'praise-25a',
@@ -486,6 +511,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Jesus Christ is the same yesterday, today, and forever.',
       topicName: 'Praise',
       verseReference: 'Hebrews 13:8',
+        autoContinue: true,
     },
     {
       id: 'praise-26a',
@@ -505,6 +531,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'Worship the Lord in all his holy splendor.\nLet all the earth tremble before him.',
       topicName: 'Praise',
       verseReference: 'Psalm 96:9',
+        autoContinue: true,
     },
     {
       id: 'praise-27a',
@@ -524,6 +551,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'For you are my hiding place;\nyou protect me from trouble.\nYou surround me with songs of victory.',
       topicName: 'Praise',
       verseReference: 'Psalm 32:7',
+        autoContinue: true,
     },
     {
       id: 'praise-28a',
@@ -543,6 +571,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'O Lord, there is no one like you.\nWe have never even heard of another God like you!',
       topicName: 'Praise',
       verseReference: '1 Chronicles 17:20',
+        autoContinue: true,
     },
     {
       id: 'praise-29a',
@@ -562,6 +591,7 @@ export const praiseTopics: PrayerTopic[] = [
       text: 'I pray that God, the source of hope,\nwill fill you completely with joy and peace because you trust in him.\nThen you will overflow with confident hope\nthrough the power of the Holy Spirit.',
       topicName: 'Praise',
       verseReference: 'Romans 15:13',
+        autoContinue: true,
     },
     {
       id: 'praise-50a',

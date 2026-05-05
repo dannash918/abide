@@ -9,6 +9,7 @@ export const silenceTopic: PrayerTopic = {
       text: 'Be still, and know that I am God.',
       topicName: 'Silence',
       verseReference: 'Psalm 46:10',
+        autoContinue: true,
     },
     {
       id: 'silence-2',
